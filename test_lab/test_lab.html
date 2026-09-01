@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediaGrabber PRO - Test Laboratory</title>
+  
+  <!-- OpenGraph & Twitter Media Meta for sniffer testing -->
+  <meta property="og:video" content="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4">
+  <meta property="og:audio" content="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="test_lab.css">
+</head>
+<body>
+  <div class="test-container">
+    <header class="lab-header">
+      <div class="header-content">
+        <div class="lab-tag">EXTENSION VERIFICATION SUITE</div>
+        <h1>🧪 Media Sniffing & Download Test Lab</h1>
+        <p>This laboratory contains standard HTML5 video, audio, dynamic AJAX streams, and HLS streams. Click the <strong>MediaGrabber PRO</strong> extension icon in your browser toolbar to test sniffing, preview, and downloads.</p>
+      </div>
+    </header>
+
+    <div class="lab-grid">
+      <!-- Section 1: Standard HTML5 Video -->
+      <div class="lab-card">
+        <div class="card-title">
+          <span class="type-pill video-pill">MP4 / WEBM</span>
+          <h3>1. HTML5 Video Player</h3>
+        </div>
+        <p class="card-desc">Standard embedded video with multiple source tags.</p>
+        <div class="player-wrapper">
+          <video id="testVideo" controls poster="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/images/BigBuckBunny.jpg">
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4" type="video/mp4">
+            <source src="https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4" type="video/mp4">
+            Your browser does not support HTML5 video.
+          </video>
+        </div>
+        <div class="card-footer">
+          <span>Expected: <code>BigBuckBunny.mp4</code> (1080p / MP4)</span>
+        </div>
+      </div>
+
+      <!-- Section 2: HTML5 Audio / MP3 -->
+      <div class="lab-card">
+        <div class="card-title">
+          <span class="type-pill audio-pill">MP3 AUDIO</span>
+          <h3>2. HTML5 Audio Track</h3>
+        </div>
+        <p class="card-desc">Direct high-bitrate MP3 stream.</p>
+        <div class="player-wrapper audio-box">
+          <div class="audio-visualizer-mock">
+            <div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div><div class="bar"></div>
+          </div>
+          <audio id="testAudio" controls>
+            <source src="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" type="audio/mpeg">
+            Your browser does not support HTML5 audio.
+          </audio>
+        </div>
+        <div class="card-footer">
+          <span>Expected: <code>SoundHelix-Song-2.mp3</code> (Audio / MP3)</span>
+        </div>
+      </div>
+
+      <!-- Section 3: Dynamic AJAX Media Loader -->
+      <div class="lab-card">
+        <div class="card-title">
+          <span class="type-pill dynamic-pill">DYNAMIC AJAX</span>
+          <h3>3. Asynchronous Dynamic Media</h3>
+        </div>
+        <p class="card-desc">Tests network response sniffing and PerformanceObserver when media is requested dynamically via JavaScript.</p>
+        <div class="dynamic-actions">
+          <button id="btnFetchMp4" class="lab-btn">
+            ▶ Fetch Video via AJAX
+          </button>
+          <button id="btnFetchMp3" class="lab-btn">
+            🎵 Fetch MP3 via AJAX
+          </button>
+        </div>
+        <div id="dynamicStatus" class="dynamic-log">
+          Click a button above to dynamically load media assets...
+        </div>
+        <div class="card-footer">
+          <span>Tests: Background network sniffer & DOM injection</span>
+        </div>
+      </div>
+
+      <!-- Section 4: HLS Stream (.m3u8) -->
+      <div class="lab-card">
+        <div class="card-title">
+          <span class="type-pill stream-pill">HLS STREAM</span>
+          <h3>4. HLS (.m3u8) Streaming Playlist</h3>
+        </div>
+        <p class="card-desc">Tests in-browser M3U8 chunk fetching and transport stream stitching.</p>
+        <div class="stream-info-box">
+          <div class="stream-url-display">
+            <code>https://test-streams.mux.dev/x36xhzz/x36xhzz.m3u8</code>
+          </div>
+          <button id="btnTriggerHlsTest" class="lab-btn primary">
+            ⚡ Ping HLS Stream Network Request
+          </button>
+        </div>
+        <div class="card-footer">
+          <span>Expected: <code>x36xhzz.m3u8</code> (HLS Stream)</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Verification Checklist -->
+    <div class="checklist-card">
+      <h3>📋 How to Verify the Extension:</h3>
+      <ol>
+        <li>Look at the <strong>MediaGrabber PRO</strong> icon on your browser toolbar: it should show a badge counter (e.g. <code>2</code> or <code>3</code>).</li>
+        <li>Click the icon to open the popup.</li>
+        <li>Filter by <strong>All</strong>, <strong>Video</strong>, <strong>Audio / MP3</strong>, or <strong>Streams</strong>.</li>
+        <li>Click <strong>Preview</strong> to verify in-popup playback.</li>
+        <li>Click <strong>Download</strong> or <strong>MP3 / Audio</strong> to test instant saving.</li>
+      </ol>
+    </div>
+  </div>
+
+  <script src="test_lab.js"></script>
+</body>
+</html>

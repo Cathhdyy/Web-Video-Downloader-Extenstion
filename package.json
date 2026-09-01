@@ -1,0 +1,31 @@
+{
+  "name": "web-video-downloader-extension",
+  "version": "1.1.0",
+  "description": "MediaGrabber PRO - Sniff, preview, and download videos, audio, and MP3 streams from web pages with built-in HLS stream support and MP4 transmuxing.",
+  "main": "background/service_worker.js",
+  "scripts": {
+    "generate-icons": "node generate_icons.js"
+  },
+  "keywords": [
+    "chrome-extension",
+    "manifest-v3",
+    "video-downloader",
+    "audio-downloader",
+    "mp3-downloader",
+    "hls-downloader",
+    "m3u8-downloader",
+    "mux-js",
+    "stream-recorder",
+    "media-sniffer"
+  ],
+  "author": "Cathhdyy",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Cathhdyy/Web-Video-Downloader-Extenstion.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Cathhdyy/Web-Video-Downloader-Extenstion/issues"
+  },
+  "homepage": "https://github.com/Cathhdyy/Web-Video-Downloader-Extenstion#readme"
+}

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediaGrabber PRO - Video & MP3 Downloader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="logo-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>MediaGrabber <span class="badge-pro">PRO</span></h1>
+          <div class="target-domain-row">
+            <span class="live-dot"></span>
+            <span class="tab-target" id="currentDomain">Inspecting active tab...</span>
+          </div>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btnRefresh" class="icon-btn" title="Rescan Page for Media">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 4v6h-6"></path>
+            <path d="M1 20v-6h6"></path>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
+          </svg>
+        </button>
+        <button id="btnClear" class="icon-btn" title="Clear Detected Media">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="3 6 5 6 21 6"></polyline>
+            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+          </svg>
+        </button>
+        <button id="btnOptions" class="icon-btn" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"></circle>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <!-- Filter Pills & Search -->
+    <section class="filter-section">
+      <div class="tab-filters">
+        <button class="filter-chip active" data-filter="all">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon"><rect x="3" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="3" width="7" height="7" rx="1.5"></rect><rect x="14" y="14" width="7" height="7" rx="1.5"></rect><rect x="3" y="14" width="7" height="7" rx="1.5"></rect></svg>
+          <span>All</span>
+          <span class="chip-count" id="countAll">0</span>
+        </button>
+        <button class="filter-chip" data-filter="video">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>
+          <span>Video</span>
+          <span class="chip-count" id="countVideo">0</span>
+        </button>
+        <button class="filter-chip" data-filter="audio">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+          <span>Audio</span>
+          <span class="chip-count" id="countAudio">0</span>
+        </button>
+        <button class="filter-chip" data-filter="stream">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="chip-icon"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>Streams</span>
+          <span class="chip-count" id="countStream">0</span>
+        </button>
+      </div>
+
+      <div class="search-bar">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="11" cy="11" r="8"></circle>
+          <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+        <input type="text" id="searchInput" placeholder="Filter by title, format, or quality...">
+        <button id="btnClearSearch" class="search-clear-btn" style="display: none;" title="Clear search">✕</button>
+      </div>
+    </section>
+
+    <!-- Batch Actions Bar -->
+    <div class="batch-bar" id="batchBar" style="display: none;">
+      <div class="batch-info-box">
+        <span class="batch-dot"></span>
+        <span class="batch-info" id="batchInfo">0 items ready</span>
+      </div>
+      <div class="batch-buttons">
+        <button id="btnCopyAll" class="secondary-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          Copy Links
+        </button>
+        <button id="btnDownloadAll" class="primary-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download All
+        </button>
+      </div>
+    </div>
+
+    <!-- Media List Container -->
+    <main class="media-container" id="mediaContainer">
+      <!-- Media Cards injected by popup.js -->
+    </main>
+
+    <!-- Empty State -->
+    <div class="empty-state" id="emptyState">
+      <div class="radar-box">
+        <div class="radar-scan-line"></div>
+        <div class="radar-wave wave-1"></div>
+        <div class="radar-wave wave-2"></div>
+        <div class="radar-wave wave-3"></div>
+        <div class="radar-center">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3" fill="currentColor"></polygon>
+          </svg>
+        </div>
+      </div>
+      <h3>No Media Detected on Page</h3>
+      <p>Play any video, audio track, or stream on this page and MediaGrabber will sniff it in real-time.</p>
+      
+      <div class="empty-actions">
+        <button id="btnForceScan" class="primary-btn pulse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <span>Force Scan Page</span>
+        </button>
+        <button id="btnOpenTestLab" class="secondary-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path>
+          </svg>
+          <span>Open Test Lab</span>
+        </button>
+      </div>
+
+      <div class="empty-hint">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+        <span>Tip: Start playback or unmute player to trigger network stream sniffer.</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+      <div class="status-pill">
+        <span class="status-dot"></span>
+        <span>Sniffer Active</span>
+      </div>
+      <span class="version-label">v1.1.0 • MP4 Transmuxer</span>
+    </footer>
+  </div>
+
+  <!-- Preview Modal -->
+  <div class="modal-overlay" id="previewModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 id="previewTitle">Media Preview</h4>
+        <button id="btnClosePreview" class="icon-btn close-btn">✕</button>
+      </div>
+      <div class="modal-body" id="previewPlayerContainer"></div>
+      <div class="modal-footer">
+        <button id="btnModalDownload" class="primary-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+          Download Video (.MP4)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stream to MP4 Download & Conversion Progress Modal -->
+  <div class="modal-overlay" id="hlsProgressModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4 id="hlsModalTitle">Converting Stream to MP4</h4>
+        <button id="btnCancelHls" class="icon-btn close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="stream-progress-box">
+          <div class="progress-track">
+            <div class="progress-fill" id="hlsProgressFill" style="width: 0%;"></div>
+          </div>
+          <div class="progress-labels">
+            <span id="hlsStatusText">Fetching stream chunks...</span>
+            <span id="hlsPercentText">0%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="../lib/mux.min.js"></script>
+  <script src="../lib/media_detector.js"></script>
+  <script src="../lib/hls_downloader.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MediaGrabber PRO - Settings</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="settings-layout">
+    <!-- Sidebar -->
+    <aside class="settings-sidebar">
+      <div class="sidebar-brand">
+        <div class="logo-box">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+        </div>
+        <div>
+          <h2>MediaGrabber</h2>
+          <span class="pro-tag">PRO SETTINGS</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav">
+        <a href="#general" class="nav-item active">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+          General Preferences
+        </a>
+        <a href="#testlab" id="linkTestLab" class="nav-item">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31M14 2v7.31M8.5 2h7M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>
+          Interactive Test Lab
+        </a>
+      </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="settings-main">
+      <header class="main-header">
+        <h1>General Preferences</h1>
+        <p>Configure how media files are detected, filtered, and named.</p>
+      </header>
+
+      <form id="settingsForm" class="settings-form">
+        <!-- Detection Filters -->
+        <div class="setting-card">
+          <div class="card-header">
+            <h3>Detection & Filtering</h3>
+            <p>Control which media types and file sizes trigger sniffer notifications.</p>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-text">
+              <label for="minSizeThreshold">Minimum File Size Filter (KB)</label>
+              <span>Ignore files smaller than this size to avoid small UI beeps or tracking pixels.</span>
+            </div>
+            <div class="setting-input-wrapper">
+              <input type="number" id="minSizeThreshold" min="0" max="50000" step="10" value="50">
+              <span class="unit-tag">KB</span>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-text">
+              <label for="captureHLS">Capture HLS (.m3u8) Streams</label>
+              <span>Detect streaming media playlists for in-browser chunk stitching.</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="captureHLS" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-text">
+              <label for="autoBadgeCount">Show Media Count on Extension Badge</label>
+              <span>Display the number of detected media items directly on the toolbar icon.</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="autoBadgeCount" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Download Behavior -->
+        <div class="setting-card">
+          <div class="card-header">
+            <h3>Download Behavior</h3>
+            <p>Configure default file naming and download prompts.</p>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-text">
+              <label for="mediaNamingRule">Auto-Naming Scheme</label>
+              <span>How downloaded files should be named automatically.</span>
+            </div>
+            <select id="mediaNamingRule" class="custom-select">
+              <option value="title_quality">Page Title + Format & Quality (Recommended)</option>
+              <option value="original">Original Server Filename</option>
+              <option value="timestamp">Timestamp + Media ID</option>
+            </select>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-text">
+              <label for="defaultSaveAs">Always Ask Where to Save (Save As Dialog)</label>
+              <span>Prompt for file destination on every single download.</span>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="defaultSaveAs">
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+          <button type="button" id="btnResetDefaults" class="secondary-btn">Reset to Defaults</button>
+          <button type="submit" class="primary-btn">Save Changes</button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <div class="toast-container" id="toastContainer"></div>
+  <script src="options.js"></script>
+</body>
+</html>
