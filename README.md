@@ -78,26 +78,26 @@ MediaGrabber PRO leverages a non-blocking asynchronous pipeline to intercept, ca
 
 ```mermaid
 flowchart TD
-    subgraph Browser["Web Page & Network Traffic"]
+    subgraph Browser ["Web Page & Network Traffic"]
         A["Active Tab / Streaming Website"] -->|"HTTP Requests"| B["chrome.webRequest Sniffer"]
-        A -->|"DOM Elements (<video>, <audio>)"| C["Content Script Observer"]
+        A -->|"DOM Elements (video & audio tags)"| C["Content Script Observer"]
     end
 
-    subgraph Background["Service Worker Engine"]
+    subgraph Background ["Service Worker Engine"]
         B -->|"Analyze Headers / MIME"| D["Media Classifier & Deduplicator"]
         C -->|"Report Media Elements"| D
         D -->|"Update Badge Count"| E["Tab Badge Counter"]
         D -->|"Cache Records"| F["Session Media Store"]
     end
 
-    subgraph UI["Extension Popup & Options"]
+    subgraph UI ["Extension Popup & Options"]
         F -->|"Query Detected Media"| G["Popup Dashboard"]
         G -->|"Preview"| H["Embedded Media Player"]
         G -->|"Direct Download"| I["chrome.downloads API"]
         G -->|"HLS Stream (.m3u8)"| J["HLS Downloader Engine"]
     end
 
-    subgraph Transmuxer["Client-Side Processing"]
+    subgraph Transmuxer ["Client-Side Processing"]
         J -->|"Concurrent Fetch"| K["TS Segments"]
         K -->|"Transmux via mux.js"| L["Merged MP4 Buffer"]
         L -->|"Save to Disk"| I
@@ -159,7 +159,7 @@ flowchart TD
 MediaGrabber PRO includes an internal **Test Lab** specifically designed for testing media sniffing and transmuxing routines without needing third-party streaming sites.
 
 1. Open `chrome://extensions/`
-2. Click **Details** under MediaGrabber PRO $\rightarrow$ **Extension options** $\rightarrow$ **Launch Test Lab** (or open `test_lab/test_lab.html` directly).
+2. Click **Details** under MediaGrabber PRO &rarr; **Extension options** &rarr; **Launch Test Lab** (or open `test_lab/test_lab.html` directly).
 3. Experiment with:
    - Sample HTML5 MP4 video playback
    - High-quality MP3 audio stream
