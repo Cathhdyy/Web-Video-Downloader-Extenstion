@@ -78,30 +78,43 @@ MediaGrabber PRO leverages a non-blocking asynchronous pipeline to intercept, ca
 
 ```mermaid
 flowchart TD
-    subgraph Browser ["Web Page & Network Traffic"]
-        A["Active Tab / Streaming Website"] -->|"HTTP Requests"| B["chrome.webRequest Sniffer"]
-        A -->|"DOM Elements (video & audio tags)"| C["Content Script Observer"]
+    subgraph Browser [Web Page and Network Traffic]
+        A[Active Tab / Streaming Site]
+        B[chrome.webRequest Sniffer]
+        C[Content Script Observer]
     end
 
-    subgraph Background ["Service Worker Engine"]
-        B -->|"Analyze Headers / MIME"| D["Media Classifier & Deduplicator"]
-        C -->|"Report Media Elements"| D
-        D -->|"Update Badge Count"| E["Tab Badge Counter"]
-        D -->|"Cache Records"| F["Session Media Store"]
+    subgraph Background [Service Worker Engine]
+        D[Media Classifier and Deduplicator]
+        E[Tab Badge Counter]
+        F[Session Media Store]
     end
 
-    subgraph UI ["Extension Popup & Options"]
-        F -->|"Query Detected Media"| G["Popup Dashboard"]
-        G -->|"Preview"| H["Embedded Media Player"]
-        G -->|"Direct Download"| I["chrome.downloads API"]
-        G -->|"HLS Stream (.m3u8)"| J["HLS Downloader Engine"]
+    subgraph PopupUI [Extension Popup and Options]
+        G[Popup Media Dashboard]
+        H[Embedded Preview Player]
+        I[Chrome Downloads API]
+        J[HLS Downloader Engine]
     end
 
-    subgraph Transmuxer ["Client-Side Processing"]
-        J -->|"Concurrent Fetch"| K["TS Segments"]
-        K -->|"Transmux via mux.js"| L["Merged MP4 Buffer"]
-        L -->|"Save to Disk"| I
+    subgraph Transmuxer [Client-Side Transmuxing]
+        K[TS Video Segments]
+        L[Merged MP4 File Buffer]
     end
+
+    A -->|HTTP Requests| B
+    A -->|DOM Media Elements| C
+    B -->|Analyze MIME and Headers| D
+    C -->|Report Discovered Elements| D
+    D -->|Update Badge Count| E
+    D -->|Cache Records| F
+    F -->|Load Detected Media| G
+    G -->|Preview Media| H
+    G -->|Direct Download| I
+    G -->|Extract HLS Stream| J
+    J -->|Concurrent Fetch| K
+    K -->|Transmux via mux.js| L
+    L -->|Save File to Disk| I
 ```
 
 ### Supported Media Formats
