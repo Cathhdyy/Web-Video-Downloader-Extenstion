@@ -44,4 +44,19 @@ document.addEventListener('DOMContentLoaded', () => {
       dynamicStatus.textContent = 'HLS fetch error: ' + err.message;
     }
   });
+
+  // Trigger Generic index.m3u8 Ping (tests automatic page title resolution)
+  const btnGenericHls = document.getElementById('btnTriggerGenericHls');
+  if (btnGenericHls) {
+    btnGenericHls.addEventListener('click', async () => {
+      dynamicStatus.textContent = 'Requesting generic index.m3u8 playlist...';
+      try {
+        const url = 'https://multiplatform-f.akamaihd.net/i/multi/will/bunny/big_buck_bunny_,640x360_400,640x360_700,960x540_1000,1280x720_1500,1920x1080_2500,.f4m.csmil/index.m3u8';
+        await fetch(url, { method: 'HEAD' });
+        dynamicStatus.innerHTML = '✅ Fetched generic <code>index.m3u8</code>. Open MediaGrabber PRO: it should automatically name it <strong>MediaGrabber PRO - Test Laboratory.mp4</strong> instead of <code>index.mp4</code>!';
+      } catch (e) {
+        dynamicStatus.textContent = 'Error: ' + e.message;
+      }
+    });
+  }
 });

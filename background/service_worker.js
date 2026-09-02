@@ -147,6 +147,9 @@ async function setStreamRefererRule(streamUrl, defaultPageUrl) {
 /**
  * Register detected media item for a given tab
  */
+const tabMaxDurations = new Map();
+const tabPosters = new Map();
+
 async function registerMedia(tabId, mediaItem) {
   if (!tabId || tabId < 0 || !mediaItem || !mediaItem.url) return;
 
@@ -155,6 +158,15 @@ async function registerMedia(tabId, mediaItem) {
 
   if (mediaItem.size > 0 && mediaItem.size < settings.minSizeThreshold) {
     return;
+  }
+
+  // Inherit page video duration & poster if not present on stream
+  if (!mediaItem.duration && tabMaxDurations.has(tabId)) {
+    mediaItem.duration = tabMaxDurations.get(tabId);
+    mediaItem.durationFormatted = MediaDetector.formatDuration(mediaItem.duration);
+  }
+  if (!mediaItem.poster && tabPosters.has(tabId)) {
+    mediaItem.poster = tabPosters.get(tabId);
   }
 
   if (!tabMediaStore.has(tabId)) {
@@ -223,10 +235,10 @@ if (chrome.webRequest && chrome.webRequest.onResponseStarted) {
       if (inspected) {
         chrome.tabs.get(details.tabId, (tab) => {
           if (!chrome.runtime.lastError && tab && tab.title) {
-            if (!inspected.filename || inspected.filename.startsWith('Media_') || inspected.filename.includes('videoplayback') || inspected.filename.includes('index_') || inspected.filename.includes('Video_')) {
-              const ext = inspected.ext === 'm3u8' ? 'mp4' : inspected.ext;
+            if (!inspected.filename || MediaDetector.isGenericFilename(inspected.filename)) {
+              const ext = inspected.ext === 'm3u8' ? 'mp4' : (inspected.ext || 'mp4');
               const q = inspected.quality ? `_${inspected.quality.replace(/\s+/g, '')}` : '';
-              inspected.filename = `${MediaDetector.sanitizeTitle(tab.title)}${q}.${ext}`;
+              inspected.filename = `${MediaDetector.cleanPageTitle(tab.title)}${q}.${ext}`;
             }
           }
           registerMedia(details.tabId, inspected);
@@ -291,6 +303,36 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
         }
         sendResponse({ success: true });
+      }
+      break;
+    }
+
+    case 'PAGE_VIDEO_DURATION_UPDATED': {
+      if (tabId && request.duration > 0) {
+        tabMaxDurations.set(tabId, request.duration);
+        if (request.poster) tabPosters.set(tabId, request.poster);
+
+        if (tabMediaStore.has(tabId)) {
+          const mediaMap = tabMediaStore.get(tabId);
+          let changed = false;
+          for (const item of mediaMap.values()) {
+            if (!item.duration) {
+              item.duration = request.duration;
+              item.durationFormatted = MediaDetector.formatDuration(request.duration);
+              changed = true;
+            }
+            if (request.poster && !item.poster) {
+              item.poster = request.poster;
+              changed = true;
+            }
+          }
+          if (changed) {
+            chrome.storage.local.set({ [`tab_media_${tabId}`]: Array.from(mediaMap.values()) });
+          }
+        }
+        sendResponse({ success: true });
+      } else {
+        sendResponse({ success: false });
       }
       break;
     }
@@ -406,6 +448,91 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       break;
     }
 
+    case 'DELETE_MEDIA_ITEM': {
+      const targetTabId = request.tabId || tabId;
+      const mediaId = request.id;
+      if (targetTabId && mediaId && tabMediaStore.has(targetTabId)) {
+        const mediaMap = tabMediaStore.get(targetTabId);
+        mediaMap.delete(mediaId);
+        const serialized = Array.from(mediaMap.values());
+        chrome.storage.local.set({ [`tab_media_${targetTabId}`]: serialized }).then(() => {
+          updateTabBadge(targetTabId);
+          sendResponse({ success: true, count: serialized.length });
+        });
+        return true;
+      } else if (targetTabId && mediaId) {
+        chrome.storage.local.get(`tab_media_${targetTabId}`).then((data) => {
+          const list = (data[`tab_media_${targetTabId}`] || []).filter(m => m.id !== mediaId);
+          chrome.storage.local.set({ [`tab_media_${targetTabId}`]: list }).then(() => {
+            updateTabBadge(targetTabId);
+            sendResponse({ success: true, count: list.length });
+          });
+        });
+        return true;
+      }
+      sendResponse({ success: false });
+      break;
+    }
+
+    case 'OPEN_DOWNLOADS_FOLDER': {
+      if (chrome.downloads && chrome.downloads.showDefaultFolder) {
+        chrome.downloads.showDefaultFolder();
+        sendResponse({ success: true });
+      } else {
+        chrome.tabs.create({ url: 'chrome://downloads' });
+        sendResponse({ success: true });
+      }
+      break;
+    }
+
+    case 'RECORD_DOWNLOAD_HISTORY': {
+      if (request.item) {
+        chrome.storage.local.get('download_history').then((data) => {
+          const history = data.download_history || [];
+          const record = {
+            ...request.item,
+            downloadedAt: Date.now()
+          };
+          history.unshift(record);
+          if (history.length > 50) history.pop();
+          chrome.storage.local.set({ download_history: history });
+          sendResponse({ success: true });
+        });
+        return true;
+      }
+      sendResponse({ success: false });
+      break;
+    }
+
+    case 'GET_DOWNLOAD_HISTORY': {
+      chrome.storage.local.get('download_history').then((data) => {
+        sendResponse({ history: data.download_history || [] });
+      });
+      return true;
+    }
+
+    case 'CLEAR_DOWNLOAD_HISTORY': {
+      chrome.storage.local.remove('download_history').then(() => {
+        sendResponse({ success: true });
+      });
+      return true;
+    }
+
+    case 'TRIGGER_DEEP_SCAN': {
+      if (tabId) {
+        chrome.tabs.sendMessage(tabId, { action: 'DEEP_SCAN' }, (res) => {
+          if (chrome.runtime.lastError) {
+            sendResponse({ success: false, error: chrome.runtime.lastError.message });
+          } else {
+            sendResponse({ success: true, data: res });
+          }
+        });
+        return true;
+      }
+      sendResponse({ success: false });
+      break;
+    }
+
     case 'DOWNLOAD_MEDIA': {
       if (request.url) {
         const downloadOptions = {
@@ -419,6 +546,18 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             console.error('[Download Error]:', chrome.runtime.lastError.message);
             sendResponse({ success: false, error: chrome.runtime.lastError.message });
           } else {
+            // Also log to download history
+            chrome.storage.local.get('download_history').then((data) => {
+              const history = data.download_history || [];
+              history.unshift({
+                filename: downloadOptions.filename,
+                url: downloadOptions.url,
+                downloadedAt: Date.now(),
+                downloadId
+              });
+              if (history.length > 50) history.pop();
+              chrome.storage.local.set({ download_history: history });
+            });
             sendResponse({ success: true, downloadId });
           }
         });

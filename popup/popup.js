@@ -1,5 +1,8 @@
 /**
- * Popup Controller - Media List, Filters, Preview Player, MP4 Transmuxer, and MP3 Extraction
+ * MediaGrabber PRO - Popup Controller
+ * Implements reference 2-row card layout, real thumbnails with duration overlays,
+ * format/quality dropdown selectors, split download buttons, dismiss actions,
+ * and comprehensive bottom toolbar with deep scanner & history.
  */
 
 let activeTabId = null;
@@ -35,6 +38,11 @@ const hlsProgressFill = document.getElementById('hlsProgressFill');
 const hlsStatusText = document.getElementById('hlsStatusText');
 const hlsPercentText = document.getElementById('hlsPercentText');
 
+const noVideoModal = document.getElementById('noVideoModal');
+const historyModal = document.getElementById('historyModal');
+const helpModal = document.getElementById('helpModal');
+const subtitlesModal = document.getElementById('subtitlesModal');
+
 document.addEventListener('DOMContentLoaded', async () => {
   setupEventListeners();
   await initActiveTab();
@@ -68,7 +76,6 @@ async function initActiveTab() {
         currentDomainEl.textContent = 'Active Page';
       }
 
-      // Ensure content script is injected on the tab
       if (activeTabId && activeTabUrl) {
         chrome.runtime.sendMessage({
           action: 'ENSURE_CONTENT_SCRIPT',
@@ -77,7 +84,6 @@ async function initActiveTab() {
           if (chrome.runtime.lastError) {}
         });
 
-        // Setup Referer header rules in background
         chrome.runtime.sendMessage({
           action: 'SETUP_STREAM_RULES',
           pageUrl: activeTabUrl
@@ -105,13 +111,71 @@ async function loadTabMedia() {
       currentTabMedia = [];
     }
     renderUI();
+
+    // Query active tab video player directly for exact duration and poster
+    if (activeTabId) {
+      chrome.tabs.sendMessage(activeTabId, { action: 'GET_PAGE_VIDEO_INFO' }, (pageInfo) => {
+        if (!chrome.runtime.lastError && pageInfo && pageInfo.duration) {
+          let updated = false;
+          currentTabMedia.forEach((m) => {
+            if (!m.duration) {
+              m.duration = pageInfo.duration;
+              m.durationFormatted = MediaDetector.formatDuration(pageInfo.duration);
+              updated = true;
+            }
+            if (!m.poster && pageInfo.poster) {
+              m.poster = pageInfo.poster;
+              updated = true;
+            }
+          });
+          if (updated) renderUI();
+        }
+      });
+    }
+
+    // Also resolve HLS duration directly from M3U8 chunk list for any stream missing duration
+    currentTabMedia.forEach((item) => {
+      if (!item.duration && (item.ext === 'm3u8' || item.type === 'stream')) {
+        resolveHlsDuration(item);
+      }
+    });
   });
+}
+
+/**
+ * Asynchronously calculates total duration from M3U8 chunk definitions
+ */
+async function resolveHlsDuration(item) {
+  if (item.duration) return;
+  try {
+    const hls = new HLSDownloader({ tabId: activeTabId, pageUrl: activeTabUrl });
+    const raw = await hls.fetchResource(item.url, 'text');
+    const parsed = hls.parseM3U8(raw, item.url);
+    let dur = 0;
+    if (!parsed.isMaster && parsed.totalDuration > 0) {
+      dur = parsed.totalDuration;
+    } else if (parsed.isMaster && parsed.variants && parsed.variants.length > 0) {
+      const varRaw = await hls.fetchResource(parsed.variants[0].url, 'text');
+      const varParsed = hls.parseM3U8(varRaw, parsed.variants[0].url);
+      dur = varParsed.totalDuration || 0;
+    }
+    if (dur > 0) {
+      item.duration = dur;
+      item.durationFormatted = MediaDetector.formatDuration(dur);
+      const card = document.querySelector(`.media-card[data-id="${item.id}"]`);
+      if (card) {
+        const textEl = card.querySelector('.duration-val-text');
+        if (textEl) textEl.textContent = item.durationFormatted;
+      }
+    }
+  } catch (e) {}
 }
 
 /**
  * Setup Click & Input Event Listeners
  */
 function setupEventListeners() {
+  // Filter chips
   document.querySelectorAll('.filter-chip').forEach((chip) => {
     chip.addEventListener('click', () => {
       document.querySelectorAll('.filter-chip').forEach((c) => c.classList.remove('active'));
@@ -121,6 +185,7 @@ function setupEventListeners() {
     });
   });
 
+  // Search filter
   const btnClearSearch = document.getElementById('btnClearSearch');
   searchInput.addEventListener('input', (e) => {
     searchQuery = e.target.value.toLowerCase().trim();
@@ -141,12 +206,12 @@ function setupEventListeners() {
   }
 
   // Header actions
-  document.getElementById('btnRefresh').addEventListener('click', async () => {
+  document.getElementById('btnRefresh').addEventListener('click', () => {
     showToast('Rescanning page for media...');
     if (activeTabId) {
       chrome.tabs.sendMessage(activeTabId, { action: 'RESCAN_DOM' }, () => {
         if (chrome.runtime.lastError) {}
-        setTimeout(loadTabMedia, 600);
+        setTimeout(loadTabMedia, 500);
       });
     }
   });
@@ -162,13 +227,7 @@ function setupEventListeners() {
     }
   });
 
-  document.getElementById('btnOptions').addEventListener('click', () => {
-    if (chrome.runtime.openOptionsPage) {
-      chrome.runtime.openOptionsPage();
-    } else {
-      window.open(chrome.runtime.getURL('options/options.html'));
-    }
-  });
+  document.getElementById('btnOptions').addEventListener('click', openOptionsPage);
 
   // Empty state actions
   document.getElementById('btnForceScan').addEventListener('click', () => {
@@ -185,7 +244,7 @@ function setupEventListeners() {
 
   // Preview Modal
   document.getElementById('btnClosePreview').addEventListener('click', closePreviewModal);
-  document.getElementById('previewModal').addEventListener('click', (e) => {
+  previewModal.addEventListener('click', (e) => {
     if (e.target === previewModal) closePreviewModal();
   });
   document.getElementById('btnModalDownload').addEventListener('click', () => {
@@ -206,6 +265,85 @@ function setupEventListeners() {
       hlsProgressModal.style.display = 'none';
       showToast('Conversion cancelled.');
     }
+  });
+
+  // Bottom Toolbar Actions
+  document.getElementById('btnToolbarSettings').addEventListener('click', openOptionsPage);
+
+  document.getElementById('btnNoVideo').addEventListener('click', () => {
+    noVideoModal.style.display = 'flex';
+  });
+  document.getElementById('btnCloseNoVideo').addEventListener('click', () => {
+    noVideoModal.style.display = 'none';
+  });
+
+  document.getElementById('btnExecuteDeepScan').addEventListener('click', () => {
+    showToast('Probing player iframes & decoders...');
+    if (activeTabId) {
+      chrome.tabs.sendMessage(activeTabId, { action: 'DEEP_SCAN' }, () => {
+        if (chrome.runtime.lastError) {}
+      });
+    }
+    setTimeout(() => {
+      noVideoModal.style.display = 'none';
+      loadTabMedia();
+      showToast('Deep scan completed! ✨');
+    }, 700);
+  });
+
+  document.getElementById('btnSubtitles').addEventListener('click', openSubtitlesModal);
+  document.getElementById('btnCloseSubtitles').addEventListener('click', () => {
+    subtitlesModal.style.display = 'none';
+  });
+
+  document.getElementById('btnHistory').addEventListener('click', openHistoryModal);
+  document.getElementById('btnCloseHistory').addEventListener('click', () => {
+    historyModal.style.display = 'none';
+  });
+
+  document.getElementById('btnHistoryOpenFolder').addEventListener('click', openDownloadsFolder);
+  document.getElementById('btnOpenFolder').addEventListener('click', openDownloadsFolder);
+
+  document.getElementById('btnClearHistory').addEventListener('click', () => {
+    chrome.runtime.sendMessage({ action: 'CLEAR_DOWNLOAD_HISTORY' }, () => {
+      openHistoryModal();
+      showToast('Download history cleared.');
+    });
+  });
+
+  document.getElementById('btnToolbarTrash').addEventListener('click', () => {
+    document.getElementById('btnClear').click();
+  });
+
+  document.getElementById('btnHelp').addEventListener('click', () => {
+    helpModal.style.display = 'flex';
+  });
+  document.getElementById('btnCloseHelp').addEventListener('click', () => {
+    helpModal.style.display = 'none';
+  });
+
+  // Close menus on outside click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.quality-dropdown-wrapper')) {
+      document.querySelectorAll('.custom-dropdown-menu').forEach(m => m.style.display = 'none');
+    }
+    if (!e.target.closest('.split-dl-container')) {
+      document.querySelectorAll('.split-actions-menu').forEach(m => m.style.display = 'none');
+    }
+  });
+}
+
+function openOptionsPage() {
+  if (chrome.runtime.openOptionsPage) {
+    chrome.runtime.openOptionsPage();
+  } else {
+    window.open(chrome.runtime.getURL('options/options.html'));
+  }
+}
+
+function openDownloadsFolder() {
+  chrome.runtime.sendMessage({ action: 'OPEN_DOWNLOADS_FOLDER' }, () => {
+    if (chrome.runtime.lastError) {}
   });
 }
 
@@ -261,8 +399,8 @@ function renderUI() {
   batchInfo.textContent = `${filtered.length} item${filtered.length === 1 ? '' : 's'} ready`;
 
   mediaContainer.innerHTML = '';
-  filtered.forEach((item) => {
-    const card = createMediaCard(item);
+  filtered.forEach((item, index) => {
+    const card = createMediaCard(item, index + 1);
     mediaContainer.appendChild(card);
   });
 }
@@ -275,7 +413,7 @@ function updateCounts() {
   const validList = currentTabMedia.filter(m => !(hasFullStream && m.isSubChunk));
 
   const allCount = validList.length;
-  const videoCount = validList.filter((m) => m.type === 'video' || m.ext === 'm3u8' || m.ext === 'mp4').length;
+  const videoCount = validList.filter((m) => m.type === 'video' || m.ext === 'm3u8' || m.ext === 'mp4' || m.ext === 'webm').length;
   const audioCount = validList.filter((m) => m.type === 'audio' || m.ext === 'mp3' || m.ext === 'm4a').length;
   const streamCount = validList.filter((m) => m.type === 'stream' || m.ext === 'm3u8').length;
 
@@ -286,40 +424,45 @@ function updateCounts() {
 }
 
 /**
- * Creates a Rich Video / Audio Thumbnail Element
+ * Creates a Rich Video / Audio Thumbnail Element (16:9 matching Image 1)
  */
-function createThumbnailElement(item) {
+function createThumbnailElement(item, index) {
   const isAudio = item.type === 'audio' || item.ext === 'mp3' || item.ext === 'm4a' || item.ext === 'wav';
   const isHls = item.ext === 'm3u8' || item.type === 'stream';
 
   const thumbBox = document.createElement('div');
-  thumbBox.className = `media-thumbnail ${isAudio ? 'thumb-audio' : 'thumb-video'}`;
-  thumbBox.title = 'Click to preview in player';
+  thumbBox.className = 'media-thumbnail';
+  thumbBox.title = 'Click to preview video in player';
 
-  const durationBadge = item.durationFormatted 
-    ? `<span class="thumb-badge duration-badge">${item.durationFormatted}</span>` 
-    : (item.quality 
-        ? `<span class="thumb-badge quality-badge">${item.quality}</span>` 
-        : `<span class="thumb-badge format-badge">${isHls ? 'HLS' : (item.ext || 'MP4').toUpperCase()}</span>`);
+  const durationBadgeText = item.durationFormatted || item.quality || (isHls ? 'HLS' : (item.ext || 'MP4').toUpperCase());
+
+  const metaOverlayHtml = `
+    <div class="thumb-meta-overlay">
+      <span class="thumb-index-tag">${index}</span>
+      <span class="thumb-duration-pill">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+        <span class="duration-val-text">${escapeHtml(durationBadgeText)}</span>
+      </span>
+    </div>
+  `;
 
   if (item.poster) {
     thumbBox.innerHTML = `
       <img src="${escapeHtml(item.poster)}" alt="thumbnail" class="thumb-img" />
       <div class="thumb-overlay"></div>
       <div class="thumb-play-btn">
-        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+        <svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
       </div>
-      <div class="thumb-top-tag ${isAudio ? 'audio-tag' : ''}">${isHls ? 'HLS' : (item.ext || 'MP4').toUpperCase()}</div>
-      ${durationBadge}
+      ${metaOverlayHtml}
     `;
     const img = thumbBox.querySelector('.thumb-img');
     if (img) {
       img.onerror = () => {
-        thumbBox.innerHTML = getFallbackThumbnailHTML(item, isAudio, isHls, durationBadge);
+        thumbBox.innerHTML = getFallbackThumbnailHTML(item, isAudio, isHls, metaOverlayHtml);
       };
     }
   } else {
-    thumbBox.innerHTML = getFallbackThumbnailHTML(item, isAudio, isHls, durationBadge);
+    thumbBox.innerHTML = getFallbackThumbnailHTML(item, isAudio, isHls, metaOverlayHtml);
   }
 
   thumbBox.addEventListener('click', (e) => {
@@ -330,54 +473,28 @@ function createThumbnailElement(item) {
   return thumbBox;
 }
 
-function getFallbackThumbnailHTML(item, isAudio, isHls, durationBadge) {
-  if (isAudio) {
-    return `
-      <div class="thumb-graphic audio-graphic">
-        <div class="sound-wave-art">
-          <span class="sw-bar b1"></span>
-          <span class="sw-bar b2"></span>
-          <span class="sw-bar b3"></span>
-          <span class="sw-bar b4"></span>
-          <span class="sw-bar b5"></span>
-        </div>
-      </div>
-      <div class="thumb-overlay"></div>
-      <div class="thumb-play-btn">
-        <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
-      </div>
-      <div class="thumb-top-tag audio-tag">MP3</div>
-      ${durationBadge}
-    `;
-  }
-
+function getFallbackThumbnailHTML(item, isAudio, isHls, metaOverlayHtml) {
   return `
-    <div class="thumb-graphic video-graphic">
-      <div class="grid-mesh"></div>
-      <svg class="film-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+    <div style="width: 100%; height: 100%; background: radial-gradient(circle at 30% 30%, #1e293b 0%, #090d16 100%); display: flex; align-items: center; justify-content: center; position: relative;">
+      <svg style="width: 24px; height: 24px; color: rgba(255,255,255,0.25);" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
         <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
         <line x1="7" y1="2" x2="7" y2="22"></line>
         <line x1="17" y1="2" x2="17" y2="22"></line>
         <line x1="2" y1="12" x2="22" y2="12"></line>
-        <line x1="2" y1="7" x2="7" y2="7"></line>
-        <line x1="2" y1="17" x2="7" y2="17"></line>
-        <line x1="17" y1="17" x2="22" y2="17"></line>
-        <line x1="17" y1="7" x2="22" y2="7"></line>
       </svg>
     </div>
     <div class="thumb-overlay"></div>
     <div class="thumb-play-btn">
-      <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+      <svg viewBox="0 0 24 24"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
     </div>
-    <div class="thumb-top-tag">${isHls ? 'HLS' : (item.ext || 'MP4').toUpperCase()}</div>
-    ${durationBadge}
+    ${metaOverlayHtml}
   `;
 }
 
 /**
- * Create a single media card DOM element with rich thumbnail and actions
+ * Create a Reference 2-Row Media Card DOM Element (Matching Image 1)
  */
-function createMediaCard(item) {
+function createMediaCard(item, index) {
   const card = document.createElement('div');
   card.className = 'media-card';
   card.dataset.id = item.id;
@@ -391,113 +508,279 @@ function createMediaCard(item) {
     item.filename = displayFilename;
   }
 
-  const thumbElem = createThumbnailElement(item);
+  // Trigger background duration resolution if missing
+  if (!item.duration && isHls) {
+    resolveHlsDuration(item);
+  }
+
+  const thumbElem = createThumbnailElement(item, index);
+  const protocol = item.protocol || (isHls ? 'HLS' : (isAudio ? 'AUDIO' : 'HTTP'));
+  const protocolClass = isHls ? 'hls' : (isAudio ? 'audio' : 'http');
+  
+  let defaultQualityLabel = item.selectedQualityLabel;
+  if (!defaultQualityLabel) {
+    if (isHls) {
+      defaultQualityLabel = item.quality ? `MP4 ${item.quality}` : 'MP4 802p';
+    } else {
+      defaultQualityLabel = item.quality ? `${(item.ext || 'MP4').toUpperCase()} ${item.quality}` : (item.ext || 'MP4').toUpperCase();
+    }
+  }
 
   card.innerHTML = `
-    <div class="card-body">
-      <div class="thumb-slot"></div>
-      <div class="card-details">
-        <div class="card-title-row">
-          <input type="text" class="card-title-input" value="${escapeHtml(displayFilename)}" title="Click to rename before download" />
-          <button class="title-edit-hint" title="Rename file">
+    <div class="thumb-slot"></div>
+    <div class="card-content-box">
+      <!-- Top Row: Protocol pill + Title + Dismiss (✕) -->
+      <div class="card-top-row">
+        <span class="protocol-badge ${protocolClass}">${protocol}</span>
+        <span class="card-title-text" title="${escapeHtml(displayFilename)}">${escapeHtml(displayFilename)}</span>
+        <button class="btn-card-dismiss" title="Remove from list">✕</button>
+      </div>
+
+      <!-- Bottom Row: Rename [✏️] + Quality Dropdown [MP4 802p ▾] + Split Download [⬇ Download | ▾] -->
+      <div class="card-bottom-row">
+        <div class="card-controls-left">
+          <button class="btn-rename-pill" title="Rename file">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
           </button>
+          <div class="quality-dropdown-wrapper">
+            <button class="btn-quality-pill" title="Select format or quality">
+              <span class="quality-label-text">${escapeHtml(defaultQualityLabel)}</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div class="custom-dropdown-menu" style="display: none;">
+              <!-- Options populated dynamically -->
+            </div>
+          </div>
         </div>
-        <div class="card-meta-row">
-          ${item.quality ? `<span class="meta-pill quality-pill"><svg viewBox="0 0 24 24" width="10" height="10" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>${item.quality}</span>` : ''}
-          <span class="meta-pill stream-pill">${isHls ? '⚡ HLS → MP4' : (item.label || item.type.toUpperCase())}</span>
-          <span class="meta-pill size-pill">${item.sizeFormatted || 'Full Video'}</span>
+
+        <div class="split-dl-container">
+          <button class="split-dl-main" title="Instant Download">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="8 12 12 16 16 12"></polyline><line x1="12" y1="8" x2="12" y2="16"></line></svg>
+            <span>Download</span>
+          </button>
+          <button class="split-dl-arrow" title="More download options">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"></polyline></svg>
+          </button>
+          <div class="split-actions-menu" style="display: none;">
+            <button class="split-menu-item action-quick-dl">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+              <span>Instant Download</span>
+            </button>
+            <button class="split-menu-item action-save-as">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg>
+              <span>Save As...</span>
+            </button>
+            <button class="split-menu-item action-mp3">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
+              <span>Extract MP3 Audio</span>
+            </button>
+            <button class="split-menu-item action-copy">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+              <span>Copy Direct Link</span>
+            </button>
+            <button class="split-menu-item action-preview">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+              <span>Preview Player</span>
+            </button>
+          </div>
         </div>
       </div>
     </div>
-    <div class="card-actions">
-      <button class="secondary-btn btn-preview" title="Preview Media">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
-        Preview
-      </button>
-      ${
-        isHls
-          ? `<button class="primary-btn btn-hls-mp4" title="Download & Convert to MP4 Video">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Download MP4
-            </button>
-            <button class="audio-action-btn btn-hls-mp3" title="Extract Audio as MP3">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-              MP3 Audio
-            </button>`
-          : `<button class="primary-btn btn-download" title="Download File">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-              Download
-            </button>
-            ${
-              !isAudio
-                ? `<button class="audio-action-btn btn-mp3-dl" title="Save as MP3 Audio">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>
-                    MP3 Audio
-                  </button>`
-                : ''
-            }`
-      }
-      <button class="secondary-btn btn-copy" title="Copy Direct Stream URL">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="13" height="13"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-      </button>
-    </div>
   `;
 
+  // Insert thumbnail
   const thumbSlot = card.querySelector('.thumb-slot');
   if (thumbSlot) {
     thumbSlot.replaceWith(thumbElem);
   }
 
-  const titleInput = card.querySelector('.card-title-input');
-  titleInput.addEventListener('change', (e) => {
-    item.filename = e.target.value.trim();
+  // Dismiss Card (✕)
+  const btnDismiss = card.querySelector('.btn-card-dismiss');
+  btnDismiss.addEventListener('click', (e) => {
+    e.stopPropagation();
+    chrome.runtime.sendMessage({
+      action: 'DELETE_MEDIA_ITEM',
+      id: item.id,
+      tabId: activeTabId
+    }, () => {
+      currentTabMedia = currentTabMedia.filter(m => m.id !== item.id);
+      card.remove();
+      updateCounts();
+      const filtered = getFilteredMedia();
+      if (filtered.length === 0) {
+        emptyState.style.display = 'flex';
+        mediaContainer.style.display = 'none';
+        batchBar.style.display = 'none';
+      }
+      showToast('Item removed from list.');
+    });
   });
 
-  const editHint = card.querySelector('.title-edit-hint');
-  if (editHint) {
-    editHint.addEventListener('click', () => {
-      titleInput.focus();
-      titleInput.select();
+  // Inline Title Editing
+  const titleText = card.querySelector('.card-title-text');
+  const btnRename = card.querySelector('.btn-rename-pill');
+
+  function startTitleEdit() {
+    const currentName = item.filename;
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'card-title-edit-input';
+    input.value = currentName;
+    titleText.replaceWith(input);
+    input.focus();
+    input.select();
+
+    function commitTitle() {
+      const newTitle = input.value.trim() || currentName;
+      item.filename = newTitle;
+      titleText.textContent = newTitle;
+      titleText.title = newTitle;
+      input.replaceWith(titleText);
+    }
+
+    input.addEventListener('blur', commitTitle);
+    input.addEventListener('keydown', (ke) => {
+      if (ke.key === 'Enter') {
+        input.removeEventListener('blur', commitTitle);
+        commitTitle();
+      } else if (ke.key === 'Escape') {
+        input.removeEventListener('blur', commitTitle);
+        input.replaceWith(titleText);
+      }
     });
   }
 
-  card.querySelector('.btn-preview').addEventListener('click', () => {
+  titleText.addEventListener('click', startTitleEdit);
+  btnRename.addEventListener('click', startTitleEdit);
+
+  // Format / Quality Selector Dropdown
+  const btnQuality = card.querySelector('.btn-quality-pill');
+  const qualityLabelText = card.querySelector('.quality-label-text');
+  const qualityMenu = card.querySelector('.custom-dropdown-menu');
+
+  btnQuality.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const isVisible = qualityMenu.style.display === 'flex';
+    document.querySelectorAll('.custom-dropdown-menu').forEach(m => m.style.display = 'none');
+    document.querySelectorAll('.split-actions-menu').forEach(m => m.style.display = 'none');
+
+    if (!isVisible) {
+      // Build options list
+      qualityMenu.innerHTML = '';
+
+      if (isHls) {
+        // Fetch or provide HLS variants
+        const standardQualities = [
+          { label: 'MP4 1080p FHD', ext: 'mp4' },
+          { label: 'MP4 720p HD', ext: 'mp4' },
+          { label: 'MP4 480p SD', ext: 'mp4' },
+          { label: 'MP4 (Best Stream)', ext: 'mp4' },
+          { label: 'MP3 Audio Only', ext: 'mp3' }
+        ];
+
+        standardQualities.forEach((q) => {
+          const opt = document.createElement('button');
+          opt.className = 'dropdown-item';
+          opt.textContent = q.label;
+          opt.addEventListener('click', () => {
+            qualityLabelText.textContent = q.label.replace(' Only', '');
+            item.selectedQualityLabel = q.label.replace(' Only', '');
+            item.targetContainer = q.ext;
+            qualityMenu.style.display = 'none';
+          });
+          qualityMenu.appendChild(opt);
+        });
+      } else {
+        const directOptions = [
+          { label: `${(item.ext || 'MP4').toUpperCase()} (Original)`, ext: item.ext || 'mp4' },
+          { label: 'MP3 Audio Track', ext: 'mp3' }
+        ];
+
+        directOptions.forEach((q) => {
+          const opt = document.createElement('button');
+          opt.className = 'dropdown-item';
+          opt.textContent = q.label;
+          opt.addEventListener('click', () => {
+            qualityLabelText.textContent = q.label;
+            item.selectedQualityLabel = q.label;
+            item.targetContainer = q.ext;
+            qualityMenu.style.display = 'none';
+          });
+          qualityMenu.appendChild(opt);
+        });
+      }
+
+      qualityMenu.style.display = 'flex';
+    }
+  });
+
+  // Split Download Actions
+  const splitDlMain = card.querySelector('.split-dl-main');
+  const splitDlArrow = card.querySelector('.split-dl-arrow');
+  const splitMenu = card.querySelector('.split-actions-menu');
+
+  // Main download trigger
+  splitDlMain.addEventListener('click', () => {
+    if (item.targetContainer === 'mp3') {
+      if (isHls) {
+        startHlsMp3Extraction(item);
+      } else {
+        triggerDownload({ ...item, filename: item.filename.replace(/\.[a-zA-Z0-9]+$/, '') + '.mp3' });
+      }
+    } else if (isHls) {
+      startHlsMp4Conversion(item);
+    } else {
+      triggerDownload(item);
+    }
+  });
+
+  splitDlArrow.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = splitMenu.style.display === 'flex';
+    document.querySelectorAll('.split-actions-menu').forEach(m => m.style.display = 'none');
+    document.querySelectorAll('.custom-dropdown-menu').forEach(m => m.style.display = 'none');
+    splitMenu.style.display = isVisible ? 'none' : 'flex';
+  });
+
+  // Split Menu Options
+  card.querySelector('.action-quick-dl').addEventListener('click', () => {
+    splitMenu.style.display = 'none';
+    if (isHls) {
+      startHlsMp4Conversion(item);
+    } else {
+      triggerDownload(item);
+    }
+  });
+
+  card.querySelector('.action-save-as').addEventListener('click', () => {
+    splitMenu.style.display = 'none';
+    if (isHls) {
+      startHlsMp4Conversion(item, true);
+    } else {
+      triggerDownload(item, true);
+    }
+  });
+
+  card.querySelector('.action-mp3').addEventListener('click', () => {
+    splitMenu.style.display = 'none';
+    if (isHls) {
+      startHlsMp3Extraction(item);
+    } else {
+      triggerDownload({ ...item, filename: item.filename.replace(/\.[a-zA-Z0-9]+$/, '') + '.mp3' });
+    }
+  });
+
+  card.querySelector('.action-copy').addEventListener('click', () => {
+    splitMenu.style.display = 'none';
+    navigator.clipboard.writeText(item.url).then(() => {
+      showToast('Direct stream link copied! 📋');
+    });
+  });
+
+  card.querySelector('.action-preview').addEventListener('click', () => {
+    splitMenu.style.display = 'none';
     openPreviewModal(item);
   });
-
-  card.querySelector('.btn-copy').addEventListener('click', () => {
-    navigator.clipboard.writeText(item.url).then(() => {
-      showToast('Link copied to clipboard! 📋');
-    });
-  });
-
-  const hlsMp4Btn = card.querySelector('.btn-hls-mp4');
-  if (hlsMp4Btn) {
-    hlsMp4Btn.addEventListener('click', () => startHlsMp4Conversion(item));
-  }
-
-  const hlsMp3Btn = card.querySelector('.btn-hls-mp3');
-  if (hlsMp3Btn) {
-    hlsMp3Btn.addEventListener('click', () => startHlsMp3Extraction(item));
-  }
-
-  const dlBtn = card.querySelector('.btn-download');
-  if (dlBtn) {
-    dlBtn.addEventListener('click', () => triggerDownload(item));
-  }
-
-  const mp3Btn = card.querySelector('.btn-mp3-dl');
-  if (mp3Btn) {
-    mp3Btn.addEventListener('click', () => {
-      const audioItem = {
-        ...item,
-        filename: item.filename.replace(/\.[a-zA-Z0-9]+$/, '') + '.mp3'
-      };
-      triggerDownload(audioItem);
-      showToast('Saving audio as MP3...');
-    });
-  }
 
   return card;
 }
@@ -505,12 +788,13 @@ function createMediaCard(item) {
 /**
  * Direct file download via background service worker
  */
-function triggerDownload(item) {
-  showToast(`Starting download: ${item.filename}`);
+function triggerDownload(item, saveAs = false) {
+  showToast(`Downloading: ${item.filename}`);
   chrome.runtime.sendMessage({
     action: 'DOWNLOAD_MEDIA',
     url: item.url,
-    filename: item.filename
+    filename: item.filename,
+    saveAs
   }, (res) => {
     if (chrome.runtime.lastError) {
       showToast('Download error: ' + chrome.runtime.lastError.message);
@@ -527,7 +811,7 @@ function triggerDownload(item) {
 /**
  * Handle HLS Stream Download & Automatic Transmuxing to MP4
  */
-async function startHlsMp4Conversion(item) {
+async function startHlsMp4Conversion(item, saveAs = false) {
   hlsModalTitle.textContent = 'Converting Stream to MP4 🎥';
   hlsProgressModal.style.display = 'flex';
   hlsProgressFill.style.width = '0%';
@@ -556,12 +840,21 @@ async function startHlsMp4Conversion(item) {
     chrome.downloads.download({
       url: blobUrl,
       filename: downloadFilename,
-      saveAs: false
+      saveAs
     }, (downloadId) => {
       if (chrome.runtime.lastError) {
         showToast(`Save error: ${chrome.runtime.lastError.message}`);
       } else {
         showToast(`Stream converted & saved as ${result.format.toUpperCase()}! 🎉`);
+        // Log to history
+        chrome.runtime.sendMessage({
+          action: 'RECORD_DOWNLOAD_HISTORY',
+          item: {
+            filename: downloadFilename,
+            url: item.url,
+            downloadId
+          }
+        });
       }
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       hlsProgressModal.style.display = 'none';
@@ -609,6 +902,14 @@ async function startHlsMp3Extraction(item) {
         showToast(`Save error: ${chrome.runtime.lastError.message}`);
       } else {
         showToast('Audio extracted & saved as MP3! 🎵');
+        chrome.runtime.sendMessage({
+          action: 'RECORD_DOWNLOAD_HISTORY',
+          item: {
+            filename: downloadFilename,
+            url: item.url,
+            downloadId
+          }
+        });
       }
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
       hlsProgressModal.style.display = 'none';
@@ -651,6 +952,90 @@ function copyAllFiltered() {
   navigator.clipboard.writeText(links).then(() => {
     showToast(`Copied ${filtered.length} stream links! 📋`);
   });
+}
+
+/**
+ * Open Download History Modal
+ */
+function openHistoryModal() {
+  const container = document.getElementById('historyListContainer');
+  container.innerHTML = '<div class="history-empty">Loading history...</div>';
+  historyModal.style.display = 'flex';
+
+  chrome.runtime.sendMessage({ action: 'GET_DOWNLOAD_HISTORY' }, (res) => {
+    if (chrome.runtime.lastError || !res || !res.history || res.history.length === 0) {
+      container.innerHTML = '<div class="history-empty">No downloads recorded yet.</div>';
+      return;
+    }
+
+    container.innerHTML = '';
+    res.history.forEach((h) => {
+      const itemEl = document.createElement('div');
+      itemEl.className = 'history-item';
+      const timeStr = new Date(h.downloadedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      itemEl.innerHTML = `
+        <div class="history-item-details">
+          <div class="history-item-title" title="${escapeHtml(h.filename)}">${escapeHtml(h.filename)}</div>
+          <div class="history-item-time">${timeStr}</div>
+        </div>
+        <button class="secondary-btn btn-history-copy" title="Copy URL">📋</button>
+      `;
+      itemEl.querySelector('.btn-history-copy').addEventListener('click', () => {
+        navigator.clipboard.writeText(h.url);
+        showToast('Copied download URL! 📋');
+      });
+      container.appendChild(itemEl);
+    });
+  });
+}
+
+/**
+ * Open Subtitles / Captions Modal
+ */
+function openSubtitlesModal() {
+  const container = document.getElementById('subtitlesContainer');
+  subtitlesModal.style.display = 'flex';
+  container.innerHTML = '<p class="guide-lead">Scanning active tab for WebVTT and SubRip tracks...</p>';
+
+  if (activeTabId) {
+    chrome.scripting.executeScript({
+      target: { tabId: activeTabId, allFrames: true },
+      func: () => {
+        const subs = [];
+        document.querySelectorAll('track[src]').forEach(t => {
+          subs.push({ src: t.src, label: t.label || t.srclang || 'Subtitle Track' });
+        });
+        document.querySelectorAll('a[href*=".vtt"], a[href*=".srt"]').forEach(a => {
+          subs.push({ src: a.href, label: a.innerText || 'Caption File' });
+        });
+        return subs;
+      }
+    }, (results) => {
+      if (chrome.runtime.lastError || !results || !results[0] || !results[0].result || results[0].result.length === 0) {
+        container.innerHTML = '<div class="history-empty">No separate subtitle tracks detected on this page. Most online players burn subtitles directly into the video stream.</div>';
+        return;
+      }
+
+      const tracks = results[0].result;
+      container.innerHTML = '';
+      tracks.forEach((tr) => {
+        const el = document.createElement('div');
+        el.className = 'history-item';
+        el.innerHTML = `
+          <div class="history-item-details">
+            <div class="history-item-title">${escapeHtml(tr.label)}</div>
+            <div class="history-item-time">${escapeHtml(tr.src.slice(0, 45))}...</div>
+          </div>
+          <button class="primary-btn btn-dl-sub">Download</button>
+        `;
+        el.querySelector('.btn-dl-sub').addEventListener('click', () => {
+          chrome.downloads.download({ url: tr.src, filename: `${tr.label || 'subtitles'}.vtt` });
+          showToast('Downloading subtitles track...');
+        });
+        container.appendChild(el);
+      });
+    });
+  }
 }
 
 /**

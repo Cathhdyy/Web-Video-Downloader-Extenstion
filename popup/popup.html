@@ -94,11 +94,11 @@
         <span class="batch-info" id="batchInfo">0 items ready</span>
       </div>
       <div class="batch-buttons">
-        <button id="btnCopyAll" class="secondary-btn">
+        <button id="btnCopyAll" class="secondary-btn" title="Copy all direct URLs">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
           Copy Links
         </button>
-        <button id="btnDownloadAll" class="primary-btn">
+        <button id="btnDownloadAll" class="primary-btn" title="Download all detected items">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Download All
         </button>
@@ -148,13 +148,37 @@
       </div>
     </div>
 
-    <!-- Footer -->
-    <footer class="app-footer">
-      <div class="status-pill">
-        <span class="status-dot"></span>
-        <span>Sniffer Active</span>
+    <!-- Bottom Toolbar (Matching Reference Extension Image 1) -->
+    <footer class="app-toolbar">
+      <div class="toolbar-left">
+        <button id="btnToolbarSettings" class="tb-btn" title="Settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+        </button>
       </div>
-      <span class="version-label">v1.1.0 • MP4 Transmuxer</span>
+
+      <div class="toolbar-center">
+        <button id="btnNoVideo" class="tb-pill-btn" title="Troubleshooting & Deep Scan Helper">
+          <span>No video?</span>
+        </button>
+      </div>
+
+      <div class="toolbar-right">
+        <button id="btnSubtitles" class="tb-btn" title="Captions & Subtitles">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 8h6M8 5v6M4 14h16M4 18h10M17 5l4 9M21 9h-4"></path></svg>
+        </button>
+        <button id="btnHistory" class="tb-btn" title="Download History">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </button>
+        <button id="btnOpenFolder" class="tb-btn" title="Open Downloads Folder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+        </button>
+        <button id="btnToolbarTrash" class="tb-btn" title="Clear Detected List">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+        <button id="btnHelp" class="tb-btn" title="Help & Tips">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+        </button>
+      </div>
     </footer>
   </div>
 
@@ -171,6 +195,94 @@
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
           Download Video (.MP4)
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- "No video?" Deep Scan & Troubleshooting Modal -->
+  <div class="modal-overlay" id="noVideoModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>No Video Detected? 🕵️</h4>
+        <button id="btnCloseNoVideo" class="icon-btn close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="troubleshoot-guide">
+          <p class="guide-lead">Try these quick steps to help MediaGrabber detect the video stream:</p>
+          <div class="guide-step">
+            <span class="step-num">1</span>
+            <div class="step-text"><strong>Click Play:</strong> Most streaming websites only load video segments after you click the play button.</div>
+          </div>
+          <div class="guide-step">
+            <span class="step-num">2</span>
+            <div class="step-text"><strong>Unmute / Volume:</strong> Unmute the player or adjust volume slightly to trigger the media decoder.</div>
+          </div>
+          <div class="guide-step">
+            <span class="step-num">3</span>
+            <div class="step-text"><strong>Switch Quality:</strong> Changing resolution (e.g. 720p/1080p) inside the player forces an M3U8 manifest request.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer modal-actions-row">
+        <button id="btnExecuteDeepScan" class="primary-btn pulse">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          ⚡ Run Deep Iframe Scan Now
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Download History Modal / Drawer -->
+  <div class="modal-overlay" id="historyModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>Download History 🕒</h4>
+        <button id="btnCloseHistory" class="icon-btn close-btn">✕</button>
+      </div>
+      <div class="modal-body" id="historyListContainer">
+        <!-- History items injected here -->
+      </div>
+      <div class="modal-footer modal-actions-between">
+        <button id="btnClearHistory" class="secondary-btn">Clear History</button>
+        <button id="btnHistoryOpenFolder" class="primary-btn">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+          Open Folder
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Help & Tips Modal -->
+  <div class="modal-overlay" id="helpModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>MediaGrabber PRO Help 💡</h4>
+        <button id="btnCloseHelp" class="icon-btn close-btn">✕</button>
+      </div>
+      <div class="modal-body">
+        <div class="help-content">
+          <h5>⚡ Instant Features:</h5>
+          <ul>
+            <li><strong>Protocol Badge:</strong> Shows whether a stream is HLS (transmuxed to MP4) or direct HTTP.</li>
+            <li><strong>Quality Dropdown:</strong> Select preferred resolution (1080p, 720p, etc.) before clicking Download.</li>
+            <li><strong>Quick Rename:</strong> Click the pencil ✏️ or click directly on the filename to rename before downloading.</li>
+            <li><strong>Dismiss Card:</strong> Click ✕ on the top-right of any video to remove it from the list.</li>
+            <li><strong>Audio Extraction:</strong> Use the dropdown arrow on Download to extract pure MP3 audio.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Subtitles Modal -->
+  <div class="modal-overlay" id="subtitlesModal" style="display: none;">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h4>Subtitles & Captions 文A</h4>
+        <button id="btnCloseSubtitles" class="icon-btn close-btn">✕</button>
+      </div>
+      <div class="modal-body" id="subtitlesContainer">
+        <p class="guide-lead">Scanning page for WebVTT (.vtt) and SubRip (.srt) caption tracks...</p>
       </div>
     </div>
   </div>
