@@ -1,0 +1,81 @@
+name: Test & Package Release
+
+on:
+  push:
+    branches: [main]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  test:
+    name: Run Unit Tests & Syntax Verification
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Test Suite
+        run: npm test
+
+      - name: Verify JavaScript Syntax
+        run: |
+          node -c background/service_worker.js
+          node -c offscreen/offscreen.js
+          node -c content/content_script.js
+          node -c popup/popup.js
+          node -c options/options.js
+          node -c lib/hls_downloader.js
+          node -c lib/media_detector.js
+
+  package:
+    name: Build Chrome Extension ZIP
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Read Version from manifest.json
+        id: version
+        run: |
+          VERSION=$(node -p "require('./manifest.json').version")
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+
+      - name: Package Extension Bundle
+        run: |
+          zip -r "mediagrabber-pro-v${{ steps.version.outputs.VERSION }}.zip" \
+            manifest.json \
+            background/ \
+            content/ \
+            popup/ \
+            options/ \
+            offscreen/ \
+            lib/ \
+            icons/ \
+            types/ \
+            LICENSE \
+            README.md \
+            -x "*.git*" "*.DS_Store*"
+
+      - name: Upload Extension Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mediagrabber-pro-v${{ steps.version.outputs.VERSION }}
+          path: "mediagrabber-pro-v${{ steps.version.outputs.VERSION }}.zip"
+
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: "mediagrabber-pro-v${{ steps.version.outputs.VERSION }}.zip"
+          generate_release_notes: true

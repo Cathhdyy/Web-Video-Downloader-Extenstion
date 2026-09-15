@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediaGrabber PRO - Settings</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="options.css">
 </head>
 <body>
@@ -102,8 +99,35 @@
             </div>
             <select id="mediaNamingRule" class="custom-select">
               <option value="title_quality">Page Title + Format & Quality (Recommended)</option>
+              <option value="custom">Custom Token Template (Defined Below)</option>
               <option value="original">Original Server Filename</option>
               <option value="timestamp">Timestamp + Media ID</option>
+            </select>
+          </div>
+
+          <div class="setting-row setting-row-col">
+            <div class="setting-text">
+              <label for="filenameTemplate">Custom Filename Template</label>
+              <span>Available dynamic tags: <code>{title}</code>, <code>{quality}</code>, <code>{resolution}</code>, <code>{date}</code>, <code>{ext}</code></span>
+            </div>
+            <div class="template-input-wrapper">
+              <input type="text" id="filenameTemplate" class="custom-text-input" value="{title}_{quality}.{ext}" placeholder="{title}_{quality}.{ext}">
+              <div class="template-preview-box">
+                <span class="preview-label">Live Preview:</span>
+                <span class="preview-output" id="templateLivePreview">Inception_2010_1080p_FHD.mp4</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="setting-row">
+            <div class="setting-text">
+              <label for="downloadConcurrency">Download Concurrency Throttle</label>
+              <span>Number of simultaneous stream segment workers. Lower if Wi-Fi feels sluggish.</span>
+            </div>
+            <select id="downloadConcurrency" class="custom-select">
+              <option value="2">2 Streams (Low Bandwidth / Hotspot)</option>
+              <option value="4" selected>4 Streams (Recommended Balanced)</option>
+              <option value="8">8 Streams (Turbo / High-Speed Fiber)</option>
             </select>
           </div>
 

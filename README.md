@@ -1,43 +1,70 @@
 <div align="center">
 
 # 🎬 MediaGrabber PRO
-### Advanced Web Video & MP3 Stream Downloader for Chromium
+### Ultra-Fast, Private Web Video & Audio Stream Grabber for Chromium
+#### Engineered with Chrome Manifest V3 • Offscreen Processing • Web Crypto AES-128
 
-[![Manifest V3](https://img.shields.io/badge/Manifest-V3-brightgreen.svg?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+---
+
+[![Manifest V3](https://img.shields.io/badge/Manifest-V3%20Compliant-brightgreen.svg?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
+[![CI / CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF.svg?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/release.yml)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-12%20Passing-success.svg?style=for-the-badge&logo=node.js&logoColor=white)](package.json)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
-[![Platform](https://img.shields.io/badge/Platform-Chromium%20%7C%20Brave%20%7C%20Edge-purple.svg?style=for-the-badge&logo=googlechrome&logoColor=white)](https://github.com/Cathhdyy/Web-Video-Downloader-Extenstion)
-[![Version](https://img.shields.io/badge/Version-1.1.0-orange.svg?style=for-the-badge)](manifest.json)
-[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-cyan.svg?style=for-the-badge)](CONTRIBUTING.md)
+[![Platform](https://img.shields.io/badge/Browsers-Chrome%20%7C%20Brave%20%7C%20Edge%20%7C%20Arc-purple.svg?style=for-the-badge&logo=googlechrome&logoColor=white)](manifest.json)
+[![TypeScript](https://img.shields.io/badge/Types-TypeScript%20Declarations-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white)](types/index.d.ts)
+
+<br/>
 
 <p align="center">
-  <b>Sniff, preview, transmux, and download high-definition videos, audio tracks, and HLS streams directly in your browser.</b><br/>
-  Zero external server dependencies. 100% Client-Side Transmuxing with <code>mux.js</code>.
+  <b>Sniff, preview, decrypt, transmux, and download high-definition video, audio, and streaming media directly in your browser.</b><br/>
+  <b>Zero external server dependencies. 100% Client-Side Transmuxing with <code>mux.js</code> and hardware-accelerated Web Crypto API.</b>
 </p>
 
-[Key Features](#-key-features) •
-[Installation](#-installation-guide) •
-[How It Works](#-architecture--how-it-works) •
-[Project Structure](#-project-structure) •
-[Permissions Disclosure](#-permissions--privacy) •
-[Contributing](#-contributing)
+[✨ Key Features](#-key-features) •
+[🏗️ Architecture](#️-architecture--pipeline) •
+[🚀 Installation Guide](#-installation-guide) •
+[⌨️ Keyboard Shortcuts](#️-keyboard-shortcuts) •
+[🧪 Test Suite & CI/CD](#-automated-testing--cicd) •
+[📂 Project Structure](#-project-structure) •
+[🛡️ Privacy Pledge](#️-permissions--privacy) •
+[🤝 Contributing](#-contributing)
 
 ---
 
 </div>
 
+## 🌟 Why MediaGrabber PRO?
+
+Most video downloader extensions are built around legacy architectures that fail on modern video sites:
+- ❌ **Popup Closes = Aborted Downloads**: When clicking outside an extension popup, traditional downloaders are immediately destroyed, canceling hours-long video downloads.
+- ❌ **Encrypted Stream Failures**: Most extensions cannot decrypt AES-128 HLS streams, leaving users with unplayable fragments.
+- ❌ **Network Saturation**: Unthrottled segment downloading freezes slower Wi-Fi networks and crashes browser tabs.
+- ❌ **Privacy Risks**: Many downloaders silently pipe your browsing data to third-party tracking or conversion servers.
+
+### 🛡️ The MediaGrabber PRO Solution:
+- ✅ **Persistent Offscreen Processing**: Downloads run safely inside a dedicated Manifest V3 **Offscreen Document**. You can freely close the popup or switch tabs—downloads continue uninterrupted.
+- ✅ **Hardware-Accelerated AES-128 Decryption**: Automatically parses `#EXT-X-KEY` and decrypts protected video segments using the native **Web Crypto API** (`AES-CBC`).
+- ✅ **Bandwidth Concurrency Throttling**: Choose between 2, 4, or 8 concurrent streams in Settings to balance download speed with network stability.
+- ✅ **100% Local & Private**: No analytics, no telemetry, no remote proxies. Every byte is inspected, decrypted, and saved strictly inside your local browser sandbox.
+
+---
+
 ## ✨ Key Features
 
-| Feature | Description |
-| :--- | :--- |
-| 🔍 **Dual-Layer Sniffing Engine** | Combines background network inspection (`chrome.webRequest`) with in-page DOM observation (`<video>`, `<audio>`, `<source>`, blob URLs, and embedded players). |
-| ⚡ **Client-Side HLS Transmuxing** | Downloads `.m3u8` multi-segment streams and transmuxes them directly into clean `.mp4` video files in your browser using bundled `mux.js`. No backend server or FFmpeg installation required. |
-| 🎵 **Universal Audio & MP3 Support** | Dedicated detection and extraction for MP3, M4A, AAC, WAV, OGG, Opus, and FLAC streams. Supports stripping audio tracks directly from video feeds. |
-| 🎬 **In-Popup Media Preview Player** | Built-in audio/video preview modal with scrubber, volume control, and playback rate so you can verify the content before downloading. |
-| 🏷️ **Adaptive Quality & Metadata** | Parses master playlists to extract resolutions (4K, 1080p, 720p, 480p), bitrates, content length, and file sizes. |
-| 📦 **Batch Operations** | Download multiple items simultaneously or copy all media URLs to clipboard with one click. |
-| ⚙️ **Custom Filename Templates** | Format output filenames using dynamic tags: `{title}`, `{site}`, `{quality}`, `{date}`, and `{resolution}` with automatic illegal character sanitization. |
-| 🧪 **Built-In Interactive Test Lab** | Includes an integrated testing suite (`test_lab.html`) pre-loaded with HTML5 video, audio, and live HLS stream samples to test detection routines. |
-| 🛡️ **100% Private & Local** | No remote telemetry, no third-party tracking scripts, and no external analytics. Everything runs strictly inside your local browser sandbox. |
+| Feature | Category | Description |
+| :--- | :---: | :--- |
+| 🚀 **Persistent Background Offscreen Transmuxing** | **Core Architecture** | Delegates chunk fetching, AES-128 decryption, and `mux.js` MP4 assembly to a background offscreen document. Active downloads survive popup closure without aborting. |
+| 🔐 **AES-128 HLS Decryption Engine** | **Security & Streaming** | Native Web Crypto API (`crypto.subtle.decrypt`) integration to decrypt protected educational, webinar, and corporate HLS streams. |
+| 📌 **Chrome Side Panel API Support** | **Productivity** | Dock MediaGrabber PRO directly alongside your browser viewport so you can inspect media in real-time during video playback. |
+| 🎛️ **Custom Mini Media Player** | **UI/UX & Preview** | In-popup media player featuring an interactive scrubber, time readout, play/pause toggle, `-10s` replay, playback speed cycling (`1.0x` - `2.0x`), volume slider with mute memory, and dynamic audio waveform animations. |
+| 🎨 **Adaptive Themes (Auto / Dark / Light)** | **Design System** | System Auto mode (adapts to OS theme), Ultra-Modern Glassmorphic Dark mode, and High-Contrast Daytime Light mode with instant one-click switching. |
+| 🗂️ **Multi-Selection & Batch Actions** | **Bulk Management** | Master checkbox and per-card checkboxes to download (`Download (X)`), copy links (`Copy (X)`), or delete items (`Delete (X)`) in bulk. |
+| ⚡ **Dynamic Master Quality & Bitrates** | **Media Detection** | Parses `#EXT-X-STREAM-INF` variants to extract real resolutions (`4K UHD`, `1080p FHD`, `720p HD`, `480p SD`) and real bitrates (e.g. `5.0 Mbps`). |
+| 🔄 **Progressive Exponential Backoff** | **Resilience** | Automatically retries dropped TS chunks with progressive delays (`500ms`, `1500ms`, `3000ms`), preventing transient network hiccups from ruining downloads. |
+| 🚦 **Bandwidth Concurrency Throttle** | **Network Controls** | Selectable concurrency in Settings (2 streams for low bandwidth/hotspots, 4 streams balanced, 8 streams turbo fiber). |
+| 🏷️ **Smart Filename Formatting Engine** | **Automation** | Format output filenames using dynamic tokens (`{title}`, `{quality}`, `{resolution}`, `{ext}`, `{date}`, `{time}`, `{site}`) with a live preview box. |
+| 🎵 **Lossless Audio Extraction** | **Audio Tools** | Extract pristine `.m4a` / `.mp3` audio directly from video streams without re-encoding quality degradation. |
+| 🧪 **Built-In Interactive Test Lab** | **Developer Tooling** | Pre-bundled interactive sandbox (`test_lab.html`) with live HTML5 video, MP3 audio, and multi-bitrate HLS streams for immediate verification. |
 
 ---
 
@@ -72,49 +99,64 @@ MediaGrabber PRO is built for Manifest V3 and runs on all modern Chromium-based 
 
 ---
 
-## 🏗️ Architecture & How It Works
+## 🏗️ Architecture & Pipeline
 
-MediaGrabber PRO leverages a non-blocking asynchronous pipeline to intercept, catalog, and process media assets:
+MediaGrabber PRO decouples UI interaction from media processing using Chrome Manifest V3 APIs:
 
 ```mermaid
 flowchart TD
-    subgraph Browser [Web Page and Network Traffic]
-        A[Active Tab / Streaming Site]
-        B[chrome.webRequest Sniffer]
-        C[Content Script Observer]
+    subgraph BrowserEnvironment [Web Page & Network Layer]
+        Tab[Active Tab / Video Host]
+        NetSniffer[chrome.webRequest Sniffer]
+        DomObserver[Content Script DOM Inspector]
     end
 
-    subgraph Background [Service Worker Engine]
-        D[Media Classifier and Deduplicator]
-        E[Tab Badge Counter]
-        F[Session Media Store]
+    subgraph ServiceWorkerLayer [Background Service Worker]
+        SW[Service Worker Coordinator]
+        Registry[Active Download Jobs Registry]
+        Keepalive[SW Keepalive Heartbeat]
     end
 
-    subgraph PopupUI [Extension Popup and Options]
-        G[Popup Media Dashboard]
-        H[Embedded Preview Player]
-        I[Chrome Downloads API]
-        J[HLS Downloader Engine]
+    subgraph OffscreenWorker [Manifest V3 Offscreen Document]
+        OffscreenDoc[Offscreen Processing Engine]
+        Fetcher[Concurrent Chunk Fetcher]
+        Decrypter[Web Crypto AES-128 Decryptor]
+        Muxer[mux.js TS to MP4 Transmuxer]
     end
 
-    subgraph Transmuxer [Client-Side Transmuxing]
-        K[TS Video Segments]
-        L[Merged MP4 File Buffer]
+    subgraph UserInterface [Lightweight Reactive UI]
+        Popup[Extension Popup Dashboard]
+        SidePanel[Chrome Side Panel Dock]
+        Player[Custom Mini Media Player]
     end
 
-    A -->|HTTP Requests| B
-    A -->|DOM Media Elements| C
-    B -->|Analyze MIME and Headers| D
-    C -->|Report Discovered Elements| D
-    D -->|Update Badge Count| E
-    D -->|Cache Records| F
-    F -->|Load Detected Media| G
-    G -->|Preview Media| H
-    G -->|Direct Download| I
-    G -->|Extract HLS Stream| J
-    J -->|Concurrent Fetch| K
-    K -->|Transmux via mux.js| L
-    L -->|Save File to Disk| I
+    subgraph FileExport [Browser Storage & Downloads]
+        Downloader[chrome.downloads API]
+        Disk[Local Disk Storage]
+    end
+
+    Tab -->|Network Traffic| NetSniffer
+    Tab -->|Inspect Video/Audio Elements| DomObserver
+    NetSniffer -->|Stream URLs & Headers| SW
+    DomObserver -->|Blob URLs & Direct Sources| SW
+
+    SW <-->|Query Media & Active Jobs| Popup
+    SW <-->|Side-by-side Inspection| SidePanel
+    Popup -->|Preview Stream| Player
+
+    Popup -->|START_DOWNLOAD_JOB| SW
+    SW -->|Start Job & Heartbeat| Keepalive
+    SW -->|Delegate Heavy Transmuxing| OffscreenDoc
+
+    OffscreenDoc -->|Throttled Concurrency| Fetcher
+    Fetcher -->|Encrypted TS Chunks| Decrypter
+    Decrypter -->|Clean TS Segments| Muxer
+    Muxer -->|Assembled MP4 Blob| OffscreenDoc
+
+    OffscreenDoc -->|Relay Live Speed / ETA / Progress| SW
+    SW -->|Real-Time Progress Updates| Popup
+    OffscreenDoc -->|Trigger File Save| Downloader
+    Downloader --> Disk
 ```
 
 ### Supported Media Formats
@@ -127,41 +169,89 @@ flowchart TD
 
 ---
 
+## ⌨️ Keyboard Shortcuts
+
+| Shortcut | Context | Action |
+| :---: | :---: | :--- |
+| <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>D</kbd> | Global (Any Webpage) | Instantly opens MediaGrabber PRO popup to inspect media. |
+| <kbd>Esc</kbd> | Inside Popup / Modals | Closes any open modal dialog (Preview Player, Settings, History, Help, Subtitles). |
+| <kbd>Enter</kbd> | Inline Title Editor | Saves and commits the edited file title. |
+| <kbd>Space</kbd> / <kbd>K</kbd> | Preview Modal | Toggle video / audio play and pause. |
+| <kbd>Tab</kbd> / <kbd>Shift + Tab</kbd> | Popup Navigation | Full accessible focus navigation across cards, dropdowns, and batch buttons. |
+
+---
+
+## 🧪 Automated Testing & CI/CD
+
+MediaGrabber PRO incorporates enterprise-grade engineering standards with zero external test bloat:
+
+### Run Unit Tests Locally:
+The test suite utilizes Node.js's native test runner (`node --test`), requiring zero external dependencies:
+```bash
+# Run all automated unit tests
+npm test
+
+# Run syntax verification across all modules
+npm run check
+```
+
+### Test Coverage Highlights:
+- **`HLSDownloader.parseM3U8`**: Validates master playlists, variant bitrate extraction, segment duration calculations, and AES-128 key URI & IV resolution.
+- **`MediaDetector.inspectMedia`**: Tests MIME detection, noise rejection (canvas/short dummy loops), and protocol tagging.
+- **`MediaDetector.formatFilename`**: Validates dynamic template tokens (`{title}`, `{quality}`, `{resolution}`, `{date}`, `{site}`) and illegal character stripping.
+
+### Continuous Integration & Automated Releases:
+Every push and pull request is automatically verified by [GitHub Actions](.github/workflows/release.yml):
+- Executes on Ubuntu with Node 20.
+- Runs full syntax checks (`npm run check`) and unit tests (`npm test`).
+- On semantic version tags (`v*`), automatically builds and publishes a clean Chrome Web Store zip bundle to **GitHub Releases**.
+
+---
+
 ## 📂 Project Structure
 
 ```text
+├── .github/
+│   └── workflows/
+│       └── release.yml         # Automated GitHub Actions CI/CD release workflow
 ├── background/
-│   └── service_worker.js       # Manifest V3 background worker & network listener
+│   └── service_worker.js       # Manifest V3 service worker & download job router
 ├── content/
-│   └── content_script.js       # In-page DOM inspector for media elements & blobs
+│   └── content_script.js       # In-page DOM inspector for media elements & frames
 ├── icons/
 │   ├── icon16.png              # 16x16 toolbar icon
-│   ├── icon48.png              # 48x48 extensions manager icon
-│   └── icon128.png             # 128x128 Web Store / installation icon
+│   ├── icon48.png              # 48x48 extensions management icon
+│   └── icon128.png             # 128x128 Chrome Web Store icon
 ├── lib/
-│   ├── hls_downloader.js       # Multi-threaded HLS chunk fetcher & parser
-│   ├── media_detector.js       # MIME-type, regex, and URL classification utility
-│   └── mux.min.js              # Video.js muxer for client-side TS -> MP4 conversion
+│   ├── hls_downloader.js       # AES-128 decryption, retry engine & transmuxer
+│   ├── media_detector.js       # Classification, template formatter & sanitizer
+│   └── mux.min.js              # Bundled Video.js muxer for TS -> MP4 conversion
+├── offscreen/
+│   ├── offscreen.html          # Dedicated offscreen execution environment
+│   └── offscreen.js            # Background chunk fetcher, decrypter & builder
 ├── options/
-│   ├── options.html            # Extension configuration panel
-│   ├── options.css             # Settings styling (glassmorphism dark UI)
-│   └── options.js              # Preferences storage & template customization logic
+│   ├── options.html            # Settings panel (throttle & filename templates)
+│   ├── options.css             # Glassmorphism settings design
+│   └── options.js              # Live template preview & storage persistence
 ├── popup/
-│   ├── popup.html              # Main popup dashboard UI
-│   ├── popup.css               # Responsive modern styles & animations
-│   └── popup.js                # Search, filter, preview player, and download orchestrator
+│   ├── popup.html              # Modern popup dashboard with custom player
+│   ├── popup.css               # Adaptive Dark / Light / Auto styling system
+│   └── popup.js                # Theme switcher, multi-select & custom player logic
+├── test/
+│   ├── hls_downloader.test.js  # HLS parser, quality & AES-128 test suite
+│   └── media_detector.test.js  # MIME classifier & template formatter test suite
 ├── test_lab/
-│   ├── test_lab.html           # Interactive sandbox with live audio/video/HLS samples
-│   ├── test_lab.css            # Test lab UI styling
-│   └── test_lab.js             # Sample streams playback driver
-├── .gitattributes              # Line endings & binary format definitions
-├── .gitignore                  # Development and system ignore rules
-├── CONTRIBUTING.md             # Developer contribution guidelines
-├── generate_icons.js           # Icon creation and rendering script
-├── LICENSE                     # MIT Open Source License
+│   ├── test_lab.html           # Interactive stream testing sandbox
+│   ├── test_lab.css            # Sandbox styling
+│   └── test_lab.js             # Sample stream playback controller
+├── types/
+│   └── index.d.ts              # Strongly-typed TypeScript declarations
+├── .gitignore                  # Production ignore definitions
+├── CONTRIBUTING.md             # Contribution guidelines
+├── LICENSE                     # MIT Open-Source License
 ├── manifest.json               # Chrome Extension Manifest V3 configuration
-├── package.json                # Project metadata & helper scripts
-├── README.md                   # Repository documentation
+├── package.json                # Project scripts, dependencies & metadata
+├── README.md                   # Comprehensive repository documentation
 └── SECURITY.md                 # Vulnerability disclosure policy
 ```
 
@@ -189,13 +279,15 @@ MediaGrabber PRO adheres strictly to the Principle of Least Privilege:
 | :--- | :--- |
 | `webRequest` | Inspects HTTP response headers to identify video/audio MIME types without downloading full payloads. |
 | `declarativeNetRequest` | Enables non-intrusive header observation for media stream requests. |
-| `storage` | Saves user preferences (e.g., download naming templates, UI filters) locally via `chrome.storage.local`. |
+| `offscreen` | Runs heavy video transmuxing, AES-128 decryption, and chunk fetching in the background without risk of popup closure aborts. |
+| `sidePanel` | Allows docking the media sniffer side-by-side with video playback. |
+| `storage` | Saves user preferences (e.g., concurrency throttle, naming templates, themes) locally via `chrome.storage.local`. |
 | `downloads` | Triggers the browser's native download manager to save videos, audio tracks, and transmuxed MP4s. |
 | `tabs` / `activeTab` | Determines the current domain and page title to accurately name files and associate media with the active tab. |
 | `scripting` | Executes light DOM inspection scripts to locate `<video>` and `<audio>` tags embedded inside frames. |
 | `<all_urls>` | Required so the media sniffer can intercept video streams across any website you visit. |
 
-> **Privacy Guarantee:** MediaGrabber PRO does **not** collect, store, transmit, or monetize any user data, browsing history, or downloaded content. All analysis and file processing happen 100% locally in your browser.
+> **🔒 Privacy Guarantee:** MediaGrabber PRO does **not** collect, store, transmit, or monetize any user data, browsing history, or downloaded content. All analysis and file processing happen 100% locally in your browser.
 
 ---
 

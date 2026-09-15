@@ -12,6 +12,62 @@ const tabMediaStore = new Map();
 // Map of stream hostname -> { referer, origin } captured from real player traffic
 const streamHeadersMap = new Map();
 
+// Active background download jobs: jobId -> jobObject
+const activeJobs = new Map();
+let keepAliveTimer = null;
+
+function ensureKeepAlive() {
+  if (activeJobs.size > 0 && !keepAliveTimer) {
+    keepAliveTimer = setInterval(async () => {
+      if (activeJobs.size === 0) {
+        clearInterval(keepAliveTimer);
+        keepAliveTimer = null;
+        return;
+      }
+      try {
+        await chrome.runtime.getPlatformInfo();
+      } catch (e) {}
+    }, 20000);
+  } else if (activeJobs.size === 0 && keepAliveTimer) {
+    clearInterval(keepAliveTimer);
+    keepAliveTimer = null;
+  }
+}
+
+let creatingOffscreenPromise = null;
+async function setupOffscreenDocument(path = 'offscreen/offscreen.html') {
+  if (await hasOffscreenDocument(path)) return;
+
+  if (creatingOffscreenPromise) {
+    await creatingOffscreenPromise;
+    return;
+  }
+
+  creatingOffscreenPromise = chrome.offscreen.createDocument({
+    url: path,
+    reasons: ['BLOBS', 'WORKERS'],
+    justification: 'Fetch and transmux HLS media streams to MP4/M4A in background'
+  });
+
+  try {
+    await creatingOffscreenPromise;
+  } finally {
+    creatingOffscreenPromise = null;
+  }
+}
+
+async function hasOffscreenDocument(path = 'offscreen/offscreen.html') {
+  if (!chrome.offscreen) return false;
+  if ('getContexts' in chrome.runtime) {
+    const contexts = await chrome.runtime.getContexts({
+      contextTypes: ['OFFSCREEN_DOCUMENT'],
+      documentUrls: [chrome.runtime.getURL(path)]
+    });
+    return Boolean(contexts && contexts.length);
+  }
+  return false;
+}
+
 // Default settings
 const DEFAULT_SETTINGS = {
   minSizeThreshold: 50 * 1024, // 50 KB minimum
@@ -562,6 +618,215 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           }
         });
         return true;
+      }
+      break;
+    }
+
+    case 'START_DOWNLOAD_JOB': {
+      const { media, format, saveAs, filename, pageUrl } = request;
+      const targetTabId = request.tabId || tabId;
+
+      if (!media || !media.url) {
+        sendResponse({ success: false, error: 'No media specified' });
+        break;
+      }
+
+      const jobId = 'job_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+      const isAudio = format === 'm4a' || format === 'mp3' || media.targetContainer === 'm4a' || media.targetContainer === 'mp3';
+      const targetExt = isAudio ? 'm4a' : 'mp4';
+
+      let jobFilename = filename || media.filename || 'download.mp4';
+      if (!jobFilename.toLowerCase().endsWith('.' + targetExt)) {
+        jobFilename = jobFilename.replace(/\.[a-zA-Z0-9]+$/, '') + '.' + targetExt;
+      }
+
+      const job = {
+        id: jobId,
+        tabId: targetTabId,
+        media,
+        format: targetExt,
+        filename: jobFilename,
+        status: 'starting',
+        percent: 0,
+        speed: '',
+        eta: '',
+        text: 'Starting background download...',
+        startTime: Date.now()
+      };
+
+      activeJobs.set(jobId, job);
+      ensureKeepAlive();
+
+      // Check if direct download or HLS stream
+      if (media.protocol !== 'HLS' && media.ext !== 'm3u8') {
+        job.status = 'downloading';
+        job.percent = 50;
+        job.text = 'Downloading direct media file...';
+
+        chrome.downloads.download({
+          url: media.url,
+          filename: jobFilename,
+          saveAs: Boolean(saveAs)
+        }, (downloadId) => {
+          if (chrome.runtime.lastError) {
+            job.status = 'error';
+            job.error = chrome.runtime.lastError.message;
+            job.text = 'Download failed: ' + chrome.runtime.lastError.message;
+          } else {
+            job.status = 'completed';
+            job.percent = 100;
+            job.downloadId = downloadId;
+            job.text = 'Download completed!';
+
+            chrome.storage.local.get('download_history').then((data) => {
+              const history = data.download_history || [];
+              history.unshift({
+                filename: jobFilename,
+                url: media.url,
+                downloadedAt: Date.now(),
+                downloadId
+              });
+              if (history.length > 50) history.pop();
+              chrome.storage.local.set({ download_history: history });
+            });
+          }
+
+          setTimeout(() => {
+            activeJobs.delete(jobId);
+            ensureKeepAlive();
+          }, 6000);
+        });
+
+        sendResponse({ success: true, jobId, job });
+        return true;
+      }
+
+      // HLS stream: setup offscreen and dispatch
+      (async () => {
+        try {
+          const settingsData = await chrome.storage.local.get('settings');
+          const concurrency = settingsData?.settings?.downloadConcurrency || 4;
+
+          await setupOffscreenDocument();
+          chrome.runtime.sendMessage({
+            action: 'START_OFFSCREEN_JOB',
+            jobId,
+            media,
+            format: targetExt,
+            tabId: targetTabId,
+            pageUrl: pageUrl || '',
+            saveAs: Boolean(saveAs),
+            filename: jobFilename,
+            concurrency
+          });
+        } catch (err) {
+          console.error('Failed to dispatch offscreen job:', err);
+          job.status = 'error';
+          job.error = err.message;
+          job.text = 'Offscreen worker initialization failed';
+        }
+      })();
+
+      sendResponse({ success: true, jobId, job });
+      break;
+    }
+
+    case 'GET_ACTIVE_JOBS': {
+      sendResponse({ jobs: Array.from(activeJobs.values()) });
+      break;
+    }
+
+    case 'CANCEL_DOWNLOAD_JOB': {
+      const { jobId } = request;
+      if (jobId && activeJobs.has(jobId)) {
+        chrome.runtime.sendMessage({
+          action: 'CANCEL_OFFSCREEN_JOB',
+          jobId
+        }).catch(() => {});
+        activeJobs.delete(jobId);
+        ensureKeepAlive();
+        sendResponse({ success: true });
+      } else {
+        sendResponse({ success: false, error: 'Job not found' });
+      }
+      break;
+    }
+
+    case 'JOB_PROGRESS_UPDATE': {
+      const { jobId, progress } = request;
+      if (jobId && activeJobs.has(jobId)) {
+        const job = activeJobs.get(jobId);
+        Object.assign(job, progress);
+      }
+      sendResponse({ success: true });
+      break;
+    }
+
+    case 'JOB_COMPLETED': {
+      const { jobId, downloadId, filename } = request;
+      if (jobId && activeJobs.has(jobId)) {
+        const job = activeJobs.get(jobId);
+        job.status = 'completed';
+        job.percent = 100;
+        job.text = 'Download complete! Saved as ' + (filename || job.filename);
+        job.downloadId = downloadId;
+
+        // Log to history
+        chrome.storage.local.get('download_history').then((data) => {
+          const history = data.download_history || [];
+          history.unshift({
+            filename: filename || job.filename,
+            url: job.media?.url || '',
+            downloadedAt: Date.now(),
+            downloadId
+          });
+          if (history.length > 50) history.pop();
+          chrome.storage.local.set({ download_history: history });
+        });
+
+        setTimeout(() => {
+          activeJobs.delete(jobId);
+          ensureKeepAlive();
+        }, 5000);
+      }
+      sendResponse({ success: true });
+      break;
+    }
+
+    case 'JOB_ERROR': {
+      const { jobId, error } = request;
+      if (jobId && activeJobs.has(jobId)) {
+        const job = activeJobs.get(jobId);
+        job.status = 'error';
+        job.error = error;
+        job.text = 'Error: ' + error;
+        setTimeout(() => {
+          activeJobs.delete(jobId);
+          ensureKeepAlive();
+        }, 8000);
+      }
+      sendResponse({ success: true });
+      break;
+    }
+
+    case 'JOB_CANCELLED': {
+      const { jobId } = request;
+      if (jobId && activeJobs.has(jobId)) {
+        activeJobs.delete(jobId);
+        ensureKeepAlive();
+      }
+      sendResponse({ success: true });
+      break;
+    }
+
+    case 'OPEN_SIDE_PANEL': {
+      if (chrome.sidePanel && chrome.sidePanel.open) {
+        chrome.sidePanel.open({ windowId: sender.tab?.windowId || request.windowId })
+          .then(() => sendResponse({ success: true }))
+          .catch((err) => sendResponse({ success: false, error: err.message }));
+        return true;
+      } else {
+        sendResponse({ success: false, error: 'Side panel API not supported on this browser version' });
       }
       break;
     }

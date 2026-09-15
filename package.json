@@ -4,6 +4,8 @@
   "description": "MediaGrabber PRO - Sniff, preview, and download videos, audio, and MP3 streams from web pages with built-in HLS stream support and MP4 transmuxing.",
   "main": "background/service_worker.js",
   "scripts": {
+    "test": "node --test test/*.test.js",
+    "check": "node -c background/service_worker.js lib/hls_downloader.js lib/media_detector.js offscreen/offscreen.js options/options.js popup/popup.js",
     "generate-icons": "node generate_icons.js"
   },
   "keywords": [

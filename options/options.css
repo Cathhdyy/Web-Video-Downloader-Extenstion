@@ -320,6 +320,67 @@ input:checked + .slider:before {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.setting-row-col {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.setting-text code {
+  background: rgba(0, 229, 255, 0.12);
+  color: var(--accent-cyan);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-size: 11.5px;
+}
+
+.template-input-wrapper {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.custom-text-input {
+  width: 100%;
+  background: #182030;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: #ffffff;
+  padding: 9px 12px;
+  font-size: 13px;
+  font-family: monospace;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+
+.custom-text-input:focus {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 10px rgba(0, 229, 255, 0.25);
+}
+
+.template-preview-box {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px dashed rgba(0, 229, 255, 0.3);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.preview-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.preview-output {
+  color: var(--accent-cyan);
+  font-weight: 600;
+  font-family: monospace;
+}
+
 .toast-container {
   position: fixed;
   bottom: 24px;

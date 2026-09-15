@@ -4,9 +4,6 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MediaGrabber PRO - Video & MP3 Downloader</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
@@ -30,27 +27,84 @@
         </div>
       </div>
       <div class="header-actions">
-        <button id="btnRefresh" class="icon-btn" title="Rescan Page for Media">
+        <button id="btnThemeToggle" class="icon-btn" title="Toggle Theme (Auto / Dark / Light)" aria-label="Toggle Theme">
+          <svg id="themeIconDark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+          </svg>
+          <svg id="themeIconLight" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"></circle>
+            <line x1="12" y1="1" x2="12" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="23"></line>
+            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+            <line x1="1" y1="12" x2="3" y2="12"></line>
+            <line x1="21" y1="12" x2="23" y2="12"></line>
+            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+          </svg>
+          <svg id="themeIconAuto" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </button>
+        <button id="btnSidePanel" class="icon-btn" title="Open in Side Panel (Docked)" aria-label="Open in Side Panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="15" y1="3" x2="15" y2="21"></line>
+          </svg>
+        </button>
+        <button id="btnRefresh" class="icon-btn" title="Rescan Page for Media" aria-label="Rescan Page for Media">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <path d="M23 4v6h-6"></path>
             <path d="M1 20v-6h6"></path>
             <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path>
           </svg>
         </button>
-        <button id="btnClear" class="icon-btn" title="Clear Detected Media">
+        <button id="btnClear" class="icon-btn" title="Clear Detected Media" aria-label="Clear Detected Media">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <polyline points="3 6 5 6 21 6"></polyline>
             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
           </svg>
         </button>
-        <button id="btnOptions" class="icon-btn" title="Settings">
+        <button id="btnOptions" class="icon-btn" title="Settings" aria-label="Settings">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
             <circle cx="12" cy="12" r="3"></circle>
-            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0 2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
           </svg>
         </button>
       </div>
     </header>
+
+    <!-- YouTube Policy Compliance Notice -->
+    <div class="youtube-policy-notice" id="youtubePolicyNotice" style="display: none;">
+      <div class="yt-notice-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="8" x2="12" y2="12"></line>
+          <line x1="12" y1="16" x2="12.01" y2="16"></line>
+        </svg>
+      </div>
+      <div class="yt-notice-content">
+        <strong>YouTube Downloads Restricted</strong>
+        <p>In accordance with Google Chrome Web Store policies, downloading videos from YouTube is not supported.</p>
+        <button id="btnOpenTestLabFromYt" class="yt-testlab-btn">Test with Sample Streams in Lab 🧪</button>
+      </div>
+    </div>
+
+    <!-- Persistent Background Active Downloads Panel -->
+    <section class="active-downloads-panel" id="activeDownloadsPanel" style="display: none;">
+      <div class="active-dl-header">
+        <div class="active-dl-title-box">
+          <span class="active-dl-pulse"></span>
+          <span class="active-dl-heading">Background Downloads</span>
+        </div>
+        <span class="active-dl-badge">Safe to close popup ✓</span>
+      </div>
+      <div class="active-dl-list" id="activeDownloadsList">
+        <!-- Injected dynamically -->
+      </div>
+    </section>
 
     <!-- Filter Pills & Search -->
     <section class="filter-section">
@@ -89,18 +143,25 @@
 
     <!-- Batch Actions Bar -->
     <div class="batch-bar" id="batchBar" style="display: none;">
-      <div class="batch-info-box">
-        <span class="batch-dot"></span>
+      <div class="batch-select-wrap">
+        <label class="batch-checkbox-label" title="Select all items">
+          <input type="checkbox" id="selectAllCheckbox" class="batch-checkbox" aria-label="Select all detected media" />
+          <span class="batch-custom-check"></span>
+        </label>
         <span class="batch-info" id="batchInfo">0 items ready</span>
       </div>
       <div class="batch-buttons">
-        <button id="btnCopyAll" class="secondary-btn" title="Copy all direct URLs">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-          Copy Links
+        <button id="btnDeleteSelected" class="secondary-btn btn-danger-subtle" title="Remove selected items" style="display: none;" aria-label="Delete Selected Items">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <span id="btnDeleteText">Delete</span>
         </button>
-        <button id="btnDownloadAll" class="primary-btn" title="Download all detected items">
+        <button id="btnCopyAll" class="secondary-btn" title="Copy direct URLs" aria-label="Copy direct URLs">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+          <span id="btnCopyText">Copy Links</span>
+        </button>
+        <button id="btnDownloadAll" class="primary-btn" title="Download items" aria-label="Download items">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Download All
+          <span id="btnDownloadText">Download All</span>
         </button>
       </div>
     </div>
@@ -182,18 +243,59 @@
     </footer>
   </div>
 
-  <!-- Preview Modal -->
-  <div class="modal-overlay" id="previewModal" style="display: none;">
-    <div class="modal-card">
+  <!-- Preview Modal with Custom Media Player -->
+  <div class="modal-overlay" id="previewModal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+    <div class="modal-card modal-preview-card">
       <div class="modal-header">
         <h4 id="previewTitle">Media Preview</h4>
-        <button id="btnClosePreview" class="icon-btn close-btn">✕</button>
+        <button id="btnClosePreview" class="icon-btn close-btn" title="Close preview (Esc)" aria-label="Close Preview">✕</button>
       </div>
-      <div class="modal-body" id="previewPlayerContainer"></div>
+      <div class="modal-body" id="previewPlayerContainer">
+        <!-- Media render slot (video or audio element injected dynamically) -->
+        <div class="player-viewport" id="playerViewport"></div>
+
+        <!-- Custom Mini Player Bar -->
+        <div class="custom-player-bar" id="customPlayerBar">
+          <!-- Scrubber Timeline Row -->
+          <div class="player-scrubber-row">
+            <span class="player-time-badge" id="playerCurrentTime">0:00</span>
+            <div class="player-scrubber-track-box">
+              <input type="range" id="playerTimeline" class="player-scrubber" min="0" max="100" value="0" step="0.1" aria-label="Playback timeline" />
+              <div class="player-buffered-bar" id="playerBuffered"></div>
+            </div>
+            <span class="player-time-badge" id="playerDuration">0:00</span>
+          </div>
+
+          <!-- Controls: Play/Pause, Replay 10s, Speed Toggle, Volume Slider -->
+          <div class="player-controls-row">
+            <div class="player-ctrls-left">
+              <button id="btnPlayerPlayPause" class="player-ctrl-btn player-play-btn" title="Play / Pause" aria-label="Play or Pause">
+                <svg id="iconPlay" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 4 20 12 6 20 6 4"></polygon></svg>
+                <svg id="iconPause" style="display: none;" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>
+              </button>
+              <button id="btnPlayerReplay" class="player-ctrl-btn" title="Replay 10 seconds" aria-label="Replay 10 seconds">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path><path d="M3 3v5h5"></path></svg>
+              </button>
+            </div>
+
+            <div class="player-ctrls-right">
+              <button id="btnPlayerSpeed" class="player-speed-pill" title="Playback speed (click to cycle: 1x, 1.25x, 1.5x, 2x)" aria-label="Playback speed">1.0x</button>
+              
+              <div class="player-volume-group">
+                <button id="btnPlayerMute" class="player-ctrl-btn" title="Mute / Unmute" aria-label="Mute or Unmute">
+                  <svg id="iconVolHigh" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path></svg>
+                  <svg id="iconVolMuted" style="display: none;" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>
+                </button>
+                <input type="range" id="playerVolume" class="player-volume-slider" min="0" max="1" step="0.05" value="1" aria-label="Playback Volume" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
       <div class="modal-footer">
-        <button id="btnModalDownload" class="primary-btn">
+        <button id="btnModalDownload" class="primary-btn" aria-label="Download Media">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-          Download Video (.MP4)
+          <span id="modalDownloadBtnText">Download Media</span>
         </button>
       </div>
     </div>
@@ -266,8 +368,14 @@
             <li><strong>Protocol Badge:</strong> Shows whether a stream is HLS (transmuxed to MP4) or direct HTTP.</li>
             <li><strong>Quality Dropdown:</strong> Select preferred resolution (1080p, 720p, etc.) before clicking Download.</li>
             <li><strong>Quick Rename:</strong> Click the pencil ✏️ or click directly on the filename to rename before downloading.</li>
-            <li><strong>Dismiss Card:</strong> Click ✕ on the top-right of any video to remove it from the list.</li>
-            <li><strong>Audio Extraction:</strong> Use the dropdown arrow on Download to extract pure MP3 audio.</li>
+            <li><strong>Multi-Select:</strong> Check items individually or select all for bulk downloads and deletion.</li>
+            <li><strong>Custom Mini Player:</strong> Preview media with speed toggle (1x-2x), timeline scrubber, and volume memory.</li>
+          </ul>
+          <h5 style="margin-top: 14px;">⌨️ Keyboard Shortcuts:</h5>
+          <ul>
+            <li><kbd>Alt + Shift + D</kbd>: Open MediaGrabber extension anywhere.</li>
+            <li><kbd>Esc</kbd>: Close any active modal dialog.</li>
+            <li><kbd>Enter</kbd>: Save renamed filename.</li>
           </ul>
         </div>
       </div>
