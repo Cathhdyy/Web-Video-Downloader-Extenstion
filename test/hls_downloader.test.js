@@ -152,4 +152,53 @@ segment2.m4s
     assert.equal(initSeg.url, 'https://cdn.example.com/cmaf/init.mp4');
     assert.deepEqual(initSeg.byteRange, { offset: 0, length: 1234 });
   });
+
+  test('parses EXT-X-MEDIA:TYPE=AUDIO and links to variant stream', () => {
+    const masterWithAudio = `
+#EXTM3U
+#EXT-X-VERSION:4
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio-aac",NAME="English",DEFAULT=YES,AUTOSELECT=YES,LANGUAGE="en",URI="audio/en.m3u8"
+#EXT-X-MEDIA:TYPE=AUDIO,GROUP-ID="audio-aac",NAME="Spanish",DEFAULT=NO,AUTOSELECT=YES,LANGUAGE="es",URI="audio/es.m3u8"
+#EXT-X-STREAM-INF:BANDWIDTH=3000000,RESOLUTION=1920x1080,AUDIO="audio-aac"
+video/1080p.m3u8
+    `;
+
+    const parsed = downloader.parseM3U8(masterWithAudio, 'https://cdn.example.com/stream/master.m3u8');
+    assert.equal(parsed.isMaster, true);
+    assert.equal(parsed.audioTracks.length, 2);
+    assert.equal(parsed.audioTracks[0].name, 'English');
+    assert.equal(parsed.audioTracks[0].isDefault, true);
+    assert.equal(parsed.audioTracks[0].url, 'https://cdn.example.com/stream/audio/en.m3u8');
+    assert.equal(parsed.audioTracks[1].name, 'Spanish');
+    assert.equal(parsed.audioTracks[1].url, 'https://cdn.example.com/stream/audio/es.m3u8');
+
+    assert.equal(parsed.variants.length, 1);
+    assert.equal(parsed.variants[0].audioUrl, 'https://cdn.example.com/stream/audio/en.m3u8');
+  });
 });
+
+describe('HLSDownloader.transmuxTsToMp4', () => {
+  const downloader = new HLSDownloader();
+
+  test('falls back gracefully to TS container with correct mime type when mux.js is unavailable or empty', async () => {
+    const dummyChunk = new Uint8Array([0x47, 0x00, 0x10, 0x00]);
+    const result = await downloader.transmuxTsToMp4([dummyChunk.buffer]);
+    assert.ok(result);
+    assert.equal(result.format, 'ts');
+    assert.equal(result.ext, 'ts');
+    assert.equal(result.mimeType, 'video/mp2t');
+    assert.ok(result.blob);
+  });
+
+  test('preserves fMP4 stream without modifying boxes', async () => {
+    const fmp4Downloader = new HLSDownloader();
+    fmp4Downloader.isFmp4 = true;
+    const dummyChunk = new Uint8Array([0x00, 0x00, 0x00, 0x20, 0x66, 0x74, 0x79, 0x70]); // ftyp header
+    const result = await fmp4Downloader.transmuxTsToMp4([dummyChunk.buffer]);
+    assert.equal(result.format, 'mp4');
+    assert.equal(result.ext, 'mp4');
+    assert.equal(result.mimeType, 'video/mp4');
+    assert.equal(result.blob.size, dummyChunk.buffer.byteLength);
+  });
+});
+
