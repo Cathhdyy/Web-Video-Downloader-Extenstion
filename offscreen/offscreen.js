@@ -113,32 +113,25 @@ async function handleStartJob({ jobId, media, format, tabId, pageUrl, referer, o
 
     const blobUrl = URL.createObjectURL(result.blob);
 
-    chrome.downloads.download({
-      url: blobUrl,
+    activeDownloaders.delete(jobId);
+
+    // Delegate download to background service worker (chrome.downloads is not available in offscreen documents)
+    chrome.runtime.sendMessage({
+      action: 'OFFSCREEN_JOB_FINISHED',
+      jobId,
+      blobUrl,
       filename: cleanFilename,
       saveAs: Boolean(saveAs)
-    }, (downloadId) => {
-      activeDownloaders.delete(jobId);
-
-      if (chrome.runtime.lastError) {
-        console.error('[Offscreen] Download trigger error:', chrome.runtime.lastError.message);
-        chrome.runtime.sendMessage({
-          action: 'JOB_ERROR',
-          jobId,
-          error: chrome.runtime.lastError.message
-        }).catch(() => {});
-      } else {
-        chrome.runtime.sendMessage({
-          action: 'JOB_COMPLETED',
-          jobId,
-          downloadId,
-          filename: cleanFilename
-        }).catch(() => {});
-      }
-
-      // Revoke object URL after 90 seconds
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 90000);
+    }).catch((sendErr) => {
+      console.error('[Offscreen] Failed to notify background of job completion:', sendErr);
     });
+
+    // Revoke object URL after 2 minutes to allow download manager to finish saving to disk
+    setTimeout(() => {
+      try {
+        URL.revokeObjectURL(blobUrl);
+      } catch (e) {}
+    }, 120000);
 
   } catch (err) {
     activeDownloaders.delete(jobId);

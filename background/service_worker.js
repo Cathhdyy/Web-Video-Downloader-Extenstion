@@ -955,6 +955,60 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       break;
     }
 
+    case 'OFFSCREEN_JOB_FINISHED': {
+      const { jobId, blobUrl, filename, saveAs } = request;
+      const job = activeJobs.get(jobId);
+
+      chrome.downloads.download({
+        url: blobUrl,
+        filename: filename || job?.filename || 'download.mp4',
+        saveAs: Boolean(saveAs)
+      }, (downloadId) => {
+        if (chrome.runtime.lastError) {
+          console.error('[ServiceWorker] Download trigger error:', chrome.runtime.lastError.message);
+          if (job) {
+            job.status = 'error';
+            job.error = chrome.runtime.lastError.message;
+            job.text = 'Download failed: ' + chrome.runtime.lastError.message;
+            setTimeout(() => {
+              activeJobs.delete(jobId);
+              ensureKeepAlive();
+              resetOffscreenIdleTimer();
+            }, 8000);
+          }
+        } else {
+          if (job) {
+            job.status = 'completed';
+            job.percent = 100;
+            job.text = 'Download complete! Saved as ' + (filename || job.filename);
+            job.downloadId = downloadId;
+
+            // Log to history
+            chrome.storage.local.get('download_history').then((data) => {
+              const history = data.download_history || [];
+              history.unshift({
+                filename: filename || job.filename,
+                url: job.media?.url || '',
+                downloadedAt: Date.now(),
+                downloadId
+              });
+              if (history.length > 50) history.pop();
+              chrome.storage.local.set({ download_history: history });
+            });
+
+            setTimeout(() => {
+              activeJobs.delete(jobId);
+              ensureKeepAlive();
+              resetOffscreenIdleTimer();
+            }, 5000);
+          }
+        }
+      });
+
+      sendResponse({ success: true });
+      break;
+    }
+
     case 'JOB_COMPLETED': {
       const { jobId, downloadId, filename } = request;
       if (jobId && activeJobs.has(jobId)) {
