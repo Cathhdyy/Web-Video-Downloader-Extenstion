@@ -200,5 +200,74 @@ describe('HLSDownloader.transmuxTsToMp4', () => {
     assert.equal(result.mimeType, 'video/mp4');
     assert.equal(result.blob.size, dummyChunk.buffer.byteLength);
   });
+
+  test('patchMp4Duration fixes 13:15:21 duration bug to exact seconds in mvhd/tkhd/mdhd', () => {
+    // Build a mock moov container with mvhd, tkhd, mdhd having 4294967295 duration
+    const mvhd = [
+      0x00, 0x00, 0x00, 28,   // size 28
+      0x6D, 0x76, 0x68, 0x64, // 'mvhd'
+      0x00, 0x00, 0x00, 0x00, // v0 + flags
+      0x00, 0x00, 0x00, 0x01, // ctime
+      0x00, 0x00, 0x00, 0x02, // mtime
+      0x00, 0x01, 0x5F, 0x90, // timescale 90000
+      0xFF, 0xFF, 0xFF, 0xFF  // duration 4294967295 (13:15:21 bug)
+    ];
+
+    const tkhd = [
+      0x00, 0x00, 0x00, 32,   // size 32
+      0x74, 0x6B, 0x68, 0x64, // 'tkhd'
+      0x00, 0x00, 0x00, 0x07, // v0 + flags
+      0x00, 0x00, 0x00, 0x00, // ctime
+      0x00, 0x00, 0x00, 0x00, // mtime
+      0x00, 0x00, 0x00, 0x01, // trackId 1
+      0x00, 0x00, 0x00, 0x00, // reserved
+      0xFF, 0xFF, 0xFF, 0xFF  // duration 4294967295
+    ];
+
+    const mdhd = [
+      0x00, 0x00, 0x00, 28,   // size 28
+      0x6D, 0x64, 0x68, 0x64, // 'mdhd'
+      0x00, 0x00, 0x00, 0x00, // v0 + flags
+      0x00, 0x00, 0x00, 0x01, // ctime
+      0x00, 0x00, 0x00, 0x02, // mtime
+      0x00, 0x01, 0x5F, 0x90, // timescale 90000
+      0xFF, 0xFF, 0xFF, 0xFF  // duration 4294967295
+    ];
+
+    const mdia = [
+      0x00, 0x00, 0x00, 8 + mdhd.length,
+      0x6D, 0x64, 0x69, 0x61, // 'mdia'
+      ...mdhd
+    ];
+
+    const trak = [
+      0x00, 0x00, 0x00, 8 + tkhd.length + mdia.length,
+      0x74, 0x72, 0x61, 0x6B, // 'trak'
+      ...tkhd,
+      ...mdia
+    ];
+
+    const moov = [
+      0x00, 0x00, 0x00, 8 + mvhd.length + trak.length,
+      0x6D, 0x6F, 0x6F, 0x76, // 'moov'
+      ...mvhd,
+      ...trak
+    ];
+
+    const buf = new Uint8Array(moov);
+    const targetDurationSec = 192; // 00:03:12 (matches Video DownloadHelper exactly)
+    downloader.patchMp4Duration(buf, targetDurationSec);
+
+    const view = new DataView(buf.buffer);
+    const mvhdDuration = view.getUint32(8 + 8 + 16);
+    assert.equal(mvhdDuration, 192 * 90000); // 17,280,000
+
+    const tkhdDuration = view.getUint32(8 + mvhd.length + 8 + 8 + 20);
+    assert.equal(tkhdDuration, 192 * 90000);
+
+    const mdhdDuration = view.getUint32(8 + mvhd.length + 8 + tkhd.length + 8 + 8 + 16);
+    assert.equal(mdhdDuration, 192 * 90000);
+  });
 });
+
 
