@@ -84,4 +84,4 @@ Have an idea to make MediaGrabber PRO better?
 
 ## License
 
-By contributing to this repository, you agree that your contributions will be licensed under the project's [MIT License](LICENSE).
+By contributing to this repository, you agree that your contributions will be licensed under the project's [PolyForm Noncommercial License 1.0.0](LICENSE).

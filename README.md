@@ -8,8 +8,8 @@
 
 [![Manifest V3](https://img.shields.io/badge/Manifest-V3%20Compliant-brightgreen.svg?style=for-the-badge&logo=googlechrome&logoColor=white)](https://developer.chrome.com/docs/extensions/mv3/intro/)
 [![CI / CD](https://img.shields.io/badge/CI%2FCD-GitHub%20Actions-2088FF.svg?style=for-the-badge&logo=githubactions&logoColor=white)](.github/workflows/release.yml)
-[![Tests](https://img.shields.io/badge/Unit%20Tests-12%20Passing-success.svg?style=for-the-badge&logo=node.js&logoColor=white)](package.json)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
+[![Tests](https://img.shields.io/badge/Unit%20Tests-14%20Passing-success.svg?style=for-the-badge&logo=node.js&logoColor=white)](package.json)
+[![License: PolyForm Noncommercial](https://img.shields.io/badge/License-Non--Commercial-red.svg?style=for-the-badge)](LICENSE)
 [![Platform](https://img.shields.io/badge/Browsers-Chrome%20%7C%20Brave%20%7C%20Edge%20%7C%20Arc-purple.svg?style=for-the-badge&logo=googlechrome&logoColor=white)](manifest.json)
 [![TypeScript](https://img.shields.io/badge/Types-TypeScript%20Declarations-3178C6.svg?style=for-the-badge&logo=typescript&logoColor=white)](types/index.d.ts)
 
@@ -248,7 +248,7 @@ Every push and pull request is automatically verified by [GitHub Actions](.githu
 │   └── index.d.ts              # Strongly-typed TypeScript declarations
 ├── .gitignore                  # Production ignore definitions
 ├── CONTRIBUTING.md             # Contribution guidelines
-├── LICENSE                     # MIT Open-Source License
+├── LICENSE                     # PolyForm Noncommercial License 1.0.0
 ├── manifest.json               # Chrome Extension Manifest V3 configuration
 ├── package.json                # Project scripts, dependencies & metadata
 ├── README.md                   # Comprehensive repository documentation
@@ -312,7 +312,7 @@ MediaGrabber PRO is developed solely for personal backup and educational purpose
 
 ## 📄 License
 
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+This project is licensed under the **PolyForm Noncommercial License 1.0.0** — see the [LICENSE](LICENSE) file for details. Free for personal, educational, and open-source non-commercial use; commercial use and monetization are strictly prohibited.
 
 <div align="center">
   <sub>Built with ❤️ by Cathhdyy & the open-source community.</sub>

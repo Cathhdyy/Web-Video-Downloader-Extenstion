@@ -1,21 +1,33 @@
-MIT License
+PolyForm Noncommercial License 1.0.0
+https://polyformproject.org/licenses/noncommercial/1.0.0/
 
 Copyright (c) 2026 MediaGrabber PRO Contributors
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+## Purpose
+This license allows each user to run, copy, distribute, make available, and share this software for noncommercial purposes only.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+## Agreement
+In order to receive this license, you must agree to its rules. The rules of this license are both obligations under that agreement and conditions to your license. You must not do anything with this software that triggers a rule you cannot or will not follow.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+## Notices
+You must ensure that everyone who gets a copy of any part of this software from you, with or without changes, also receives the text of this license and the copyright notice above.
+
+## Noncommercial Purposes
+Any noncommercial purpose is a permitted purpose. If you use the software for any commercial purpose, you are not licensed to use the software.
+
+Commercial purposes include, but are not limited to:
+- Selling, renting, licensing, or leasing the software or any derivative work.
+- Providing commercial services, hosting, SaaS, or paid APIs using the software.
+- Incorporating the software into any commercial product, extension, or paid distribution.
+- Any use in connection with a revenue-generating commercial business.
+
+Personal, educational, academic, and open-source non-commercial uses are fully permitted.
+
+## Fair Use
+You may make fair use of this software under applicable copyright law.
+
+## No Other Rights
+These terms do not grant you any patent licenses, trademark licenses, or any other rights not explicitly granted herein.
+
+## Disclaimer
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES, OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
