@@ -263,7 +263,9 @@ function startDownloadJob(item, format = 'mp4', saveAs = false) {
     filename: targetFilename,
     saveAs,
     tabId: activeTabId,
-    pageUrl: activeTabUrl
+    pageUrl: item.pageUrl || activeTabUrl || '',
+    referer: item.referer || activeTabUrl || '',
+    origin: item.origin || ''
   }, (res) => {
     if (chrome.runtime.lastError) {
       showToast('Error starting download: ' + chrome.runtime.lastError.message);

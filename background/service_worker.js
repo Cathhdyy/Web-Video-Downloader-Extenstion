@@ -163,7 +163,11 @@ if (chrome.webRequest && chrome.webRequest.onBeforeSendHeaders) {
 /**
  * Configure DeclarativeNetRequest rules with valid syntax for anti-hotlinking
  */
-async function setStreamRefererRule(streamUrl, defaultPageUrl) {
+const hostRuleMap = new Map();
+let nextRuleId = 9901;
+const MAX_RULE_ID = 9980;
+
+async function setStreamRefererRule(streamUrl, defaultPageUrl, defaultOrigin) {
   if (!chrome.declarativeNetRequest || !streamUrl) return;
   try {
     const urlObj = new URL(streamUrl);
@@ -176,14 +180,33 @@ async function setStreamRefererRule(streamUrl, defaultPageUrl) {
       return;
     }
 
+    let originVal = captured?.origin || defaultOrigin || '';
+    if (!originVal && refererVal) {
+      try {
+        originVal = new URL(refererVal).origin;
+      } catch (e) {}
+    }
+
+    let ruleId = hostRuleMap.get(host);
+    if (!ruleId) {
+      ruleId = nextRuleId++;
+      if (nextRuleId > MAX_RULE_ID) nextRuleId = 9901;
+      hostRuleMap.set(host, ruleId);
+    }
+
+    const requestHeaders = [
+      { header: 'Referer', operation: 'set', value: refererVal }
+    ];
+    if (originVal) {
+      requestHeaders.push({ header: 'Origin', operation: 'set', value: originVal });
+    }
+
     const rules = [{
-      id: 9991,
-      priority: 1,
+      id: ruleId,
+      priority: 10,
       action: {
         type: 'modifyHeaders',
-        requestHeaders: [
-          { header: 'Referer', operation: 'set', value: refererVal }
-        ]
+        requestHeaders
       },
       condition: {
         urlFilter: `||${host}`,
@@ -192,7 +215,7 @@ async function setStreamRefererRule(streamUrl, defaultPageUrl) {
     }];
 
     await chrome.declarativeNetRequest.updateDynamicRules({
-      removeRuleIds: [9991],
+      removeRuleIds: [ruleId],
       addRules: rules
     });
   } catch (err) {
@@ -208,6 +231,28 @@ const tabPosters = new Map();
 
 async function registerMedia(tabId, mediaItem) {
   if (!tabId || tabId < 0 || !mediaItem || !mediaItem.url) return;
+
+  // Enrich with captured referer and origin
+  try {
+    const urlObj = new URL(mediaItem.url);
+    const captured = streamHeadersMap.get(urlObj.hostname);
+    if (captured) {
+      if (!mediaItem.referer) mediaItem.referer = captured.referer;
+      if (!mediaItem.origin) mediaItem.origin = captured.origin;
+    }
+  } catch (e) {}
+
+  // If pageUrl is missing, try to get from active tab
+  if (!mediaItem.pageUrl) {
+    try {
+      const tab = await chrome.tabs.get(tabId);
+      if (tab && tab.url && tab.url.startsWith('http')) {
+        mediaItem.pageUrl = tab.url;
+        if (!mediaItem.referer) mediaItem.referer = tab.url;
+        if (!mediaItem.origin) mediaItem.origin = new URL(tab.url).origin;
+      }
+    } catch (e) {}
+  }
 
   const storageData = await chrome.storage.local.get('settings');
   const settings = storageData.settings || DEFAULT_SETTINGS;
@@ -251,6 +296,15 @@ async function registerMedia(tabId, mediaItem) {
     if (!existing.duration && mediaItem.duration) {
       existing.duration = mediaItem.duration;
       existing.durationFormatted = mediaItem.durationFormatted;
+    }
+    if (!existing.referer && mediaItem.referer) {
+      existing.referer = mediaItem.referer;
+    }
+    if (!existing.origin && mediaItem.origin) {
+      existing.origin = mediaItem.origin;
+    }
+    if (!existing.pageUrl && mediaItem.pageUrl) {
+      existing.pageUrl = mediaItem.pageUrl;
     }
   } else {
     mediaMap.set(mediaItem.id, mediaItem);
@@ -395,7 +449,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
     case 'SETUP_STREAM_RULES': {
       if (request.streamUrl) {
-        setStreamRefererRule(request.streamUrl, request.pageUrl).then(() => {
+        setStreamRefererRule(request.streamUrl, request.pageUrl, request.origin).then(() => {
           sendResponse({ success: true });
         }).catch(() => {
           sendResponse({ success: true });
@@ -407,13 +461,26 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     case 'BACKGROUND_FETCH': {
-      const { url, responseType, pageUrl } = request;
+      const { url, responseType, pageUrl, referer, origin } = request;
 
       (async () => {
         try {
           if (!url) {
             sendResponse({ success: false, error: 'Empty URL provided' });
             return;
+          }
+
+          const effectiveReferer = referer || pageUrl || '';
+          let effectiveOrigin = origin || '';
+          if (!effectiveOrigin && effectiveReferer && effectiveReferer.startsWith('http')) {
+            try {
+              effectiveOrigin = new URL(effectiveReferer).origin;
+            } catch (e) {}
+          }
+
+          // Pre-emptively apply referer/origin DNR rule before fetching if referer is known
+          if (effectiveReferer && effectiveReferer.startsWith('http')) {
+            await setStreamRefererRule(url, effectiveReferer, effectiveOrigin);
           }
 
           // Direct fetch in service worker (exempt from CORS via <all_urls> host permissions)
@@ -425,9 +492,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
               }
             });
           } catch (fetchErr) {
-            // Retry once with referer setup if pageUrl is available
-            if (pageUrl && pageUrl.startsWith('http')) {
-              await setStreamRefererRule(url, pageUrl);
+            // Retry once with referer setup if effectiveReferer is available
+            if (effectiveReferer && effectiveReferer.startsWith('http')) {
+              await setStreamRefererRule(url, effectiveReferer, effectiveOrigin);
               res = await fetch(url, { headers: { 'Accept': '*/*' } });
             } else {
               throw fetchErr;
@@ -436,8 +503,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
           if (!res.ok) {
             // If 403 Forbidden, retry with referer rule
-            if (res.status === 403 && pageUrl && pageUrl.startsWith('http')) {
-              await setStreamRefererRule(url, pageUrl);
+            if (res.status === 403 && effectiveReferer && effectiveReferer.startsWith('http')) {
+              await setStreamRefererRule(url, effectiveReferer, effectiveOrigin);
               res = await fetch(url, { headers: { 'Accept': '*/*' } });
             }
             if (!res.ok) {
@@ -459,6 +526,57 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       })();
 
       return true; // Keep message channel open for async response
+    }
+
+    case 'PROXY_TAB_FETCH': {
+      const { url, responseType, tabId: requestedTabId, pageUrl } = request;
+
+      (async () => {
+        try {
+          let targetTabId = requestedTabId;
+
+          // If no tabId provided or tab is closed, try to find an active tab matching the pageUrl or domain
+          if (!targetTabId) {
+            try {
+              if (pageUrl) {
+                const targetOrigin = new URL(pageUrl).origin;
+                const tabs = await chrome.tabs.query({});
+                const matched = tabs.find(t => t.url && t.url.startsWith(targetOrigin));
+                if (matched) targetTabId = matched.id;
+              }
+              if (!targetTabId) {
+                const [activeTab] = await chrome.tabs.query({ active: true, currentWindow: true });
+                if (activeTab) targetTabId = activeTab.id;
+              }
+            } catch (e) {}
+          }
+
+          if (!targetTabId) {
+            sendResponse({ success: false, error: 'No suitable browser tab found to proxy request' });
+            return;
+          }
+
+          chrome.tabs.sendMessage(
+            targetTabId,
+            {
+              action: 'FETCH_RESOURCE',
+              url,
+              responseType: responseType || 'text'
+            },
+            (response) => {
+              if (chrome.runtime.lastError) {
+                sendResponse({ success: false, error: chrome.runtime.lastError.message });
+                return;
+              }
+              sendResponse(response || { success: false, error: 'Empty tab proxy response' });
+            }
+          );
+        } catch (err) {
+          sendResponse({ success: false, error: err.message || 'Tab proxy error' });
+        }
+      })();
+
+      return true;
     }
 
     case 'ENSURE_CONTENT_SCRIPT': {
@@ -659,6 +777,17 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
 
       // Check if direct download or HLS stream
       if (media.protocol !== 'HLS' && media.ext !== 'm3u8') {
+        const effectiveReferer = media.referer || pageUrl || '';
+        let effectiveOrigin = media.origin || '';
+        if (!effectiveOrigin && effectiveReferer && effectiveReferer.startsWith('http')) {
+          try {
+            effectiveOrigin = new URL(effectiveReferer).origin;
+          } catch (e) {}
+        }
+        if (media.url && effectiveReferer) {
+          setStreamRefererRule(media.url, effectiveReferer, effectiveOrigin).catch(() => {});
+        }
+
         job.status = 'downloading';
         job.percent = 50;
         job.text = 'Downloading direct media file...';
@@ -707,6 +836,20 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
           const settingsData = await chrome.storage.local.get('settings');
           const concurrency = settingsData?.settings?.downloadConcurrency || 4;
 
+          const effectivePageUrl = pageUrl || media.pageUrl || media.referer || '';
+          const effectiveReferer = media.referer || effectivePageUrl || '';
+          let effectiveOrigin = media.origin || '';
+          if (!effectiveOrigin && effectiveReferer && effectiveReferer.startsWith('http')) {
+            try {
+              effectiveOrigin = new URL(effectiveReferer).origin;
+            } catch (e) {}
+          }
+
+          // Pre-emptively register DNR anti-hotlink rule for the stream
+          if (media.url && effectiveReferer) {
+            await setStreamRefererRule(media.url, effectiveReferer, effectiveOrigin);
+          }
+
           await setupOffscreenDocument();
           chrome.runtime.sendMessage({
             action: 'START_OFFSCREEN_JOB',
@@ -714,7 +857,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             media,
             format: targetExt,
             tabId: targetTabId,
-            pageUrl: pageUrl || '',
+            pageUrl: effectivePageUrl,
+            referer: effectiveReferer,
+            origin: effectiveOrigin,
             saveAs: Boolean(saveAs),
             filename: jobFilename,
             concurrency

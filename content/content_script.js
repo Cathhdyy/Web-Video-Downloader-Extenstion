@@ -366,21 +366,43 @@
       (async () => {
         try {
           let res;
+          // 1. First attempt: fetch with session credentials (cookies) in page context
           try {
-            res = await fetch(fetchUrl, {
-              method: 'GET',
-              headers: { 'Accept': '*/*' }
-            });
-          } catch (err1) {
             res = await fetch(fetchUrl, {
               method: 'GET',
               credentials: 'include',
               headers: { 'Accept': '*/*' }
             });
+          } catch (e1) {
+            // Credentials may fail if CORS policy disallows credentials with wildcard
+            res = null;
           }
 
-          if (!res.ok) {
-            throw new Error(`HTTP ${res.status}: ${res.statusText || 'In-page fetch failed'}`);
+          // 2. If first attempt failed or returned 401/403/400, retry with same-origin credentials
+          if (!res || !res.ok) {
+            try {
+              const res2 = await fetch(fetchUrl, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: { 'Accept': '*/*' }
+              });
+              if (res2.ok || !res) res = res2;
+            } catch (e2) {}
+          }
+
+          // 3. Fallback: standard fetch
+          if (!res || !res.ok) {
+            try {
+              const res3 = await fetch(fetchUrl, {
+                method: 'GET',
+                headers: { 'Accept': '*/*' }
+              });
+              if (res3.ok || !res) res = res3;
+            } catch (e3) {}
+          }
+
+          if (!res || !res.ok) {
+            throw new Error(`HTTP ${res?.status || 500}: ${res?.statusText || 'In-page fetch failed'}`);
           }
 
           if (responseType === 'arraybuffer') {

@@ -18,13 +18,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     case 'START_OFFSCREEN_JOB': {
-      const { jobId, media, format, tabId, pageUrl, saveAs, filename, concurrency } = request;
+      const { jobId, media, format, tabId, pageUrl, referer, origin, saveAs, filename, concurrency } = request;
       if (!jobId || !media || !media.url) {
         sendResponse({ success: false, error: 'Invalid job parameters' });
         return false;
       }
 
-      handleStartJob({ jobId, media, format, tabId, pageUrl, saveAs, filename, concurrency });
+      handleStartJob({ jobId, media, format, tabId, pageUrl, referer, origin, saveAs, filename, concurrency });
       sendResponse({ success: true, jobId });
       break;
     }
@@ -53,7 +53,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   return true;
 });
 
-async function handleStartJob({ jobId, media, format, tabId, pageUrl, saveAs, filename, concurrency }) {
+async function handleStartJob({ jobId, media, format, tabId, pageUrl, referer, origin, saveAs, filename, concurrency }) {
   const isAudio = format === 'm4a' || format === 'mp3' || media.targetContainer === 'm4a' || media.targetContainer === 'mp3';
   const targetExt = isAudio ? 'm4a' : 'mp4';
 
@@ -62,10 +62,20 @@ async function handleStartJob({ jobId, media, format, tabId, pageUrl, saveAs, fi
     cleanFilename = cleanFilename.replace(/\.[a-zA-Z0-9]+$/, '') + '.' + targetExt;
   }
 
+  let effectiveOrigin = origin || media.origin || '';
+  const effectiveReferer = referer || media.referer || pageUrl || '';
+  if (!effectiveOrigin && effectiveReferer && effectiveReferer.startsWith('http')) {
+    try {
+      effectiveOrigin = new URL(effectiveReferer).origin;
+    } catch (e) {}
+  }
+
   const downloader = new HLSDownloader({
     concurrency: concurrency || 4,
     tabId: tabId || null,
-    pageUrl: pageUrl || '',
+    pageUrl: pageUrl || media.pageUrl || '',
+    referer: effectiveReferer,
+    origin: effectiveOrigin,
     selectedVariantUrl: media.selectedVariantUrl || null
   });
 
