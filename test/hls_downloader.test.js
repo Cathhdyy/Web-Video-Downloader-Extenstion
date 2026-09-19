@@ -268,6 +268,41 @@ describe('HLSDownloader.transmuxTsToMp4', () => {
     const mdhdDuration = view.getUint32(8 + mvhd.length + 8 + tkhd.length + 8 + 8 + 16);
     assert.equal(mdhdDuration, 192 * 90000);
   });
+
+  test('mux.js correctly delimits frames and creates multiple samples when stream omits AUDs', () => {
+    const muxjs = require('../lib/mux.min.js');
+    const track = {
+      timelineStartInfo: { pts: 0, dts: 0, baseMediaDecodeTime: 0 },
+      sps: [new Uint8Array([0x67, 0x42, 0x00, 0x1E])],
+      pps: [new Uint8Array([0x68, 0xCE, 0x38, 0x80])]
+    };
+    const vStream = new muxjs.mp4.VideoSegmentStream(track);
+
+    let output = null;
+    vStream.on('data', d => { output = d; });
+
+    // Stream with SPS, PPS, IDR slice, and 2 P-frame slices WITHOUT any AUD (type 9)
+    const nalsWithoutAud = [
+      { nalUnitTypeCode: 7, nalUnitType: 'seq_parameter_set_rbsp', data: new Uint8Array([0x67, 0x42, 0x00, 0x1E]), config: { width: 404, height: 720 }, pts: 0, dts: 0 },
+      { nalUnitTypeCode: 8, nalUnitType: 'pic_parameter_set_rbsp', data: new Uint8Array([0x68, 0xCE, 0x38, 0x80]), pts: 0, dts: 0 },
+      { nalUnitTypeCode: 5, nalUnitType: 'slice_layer_without_partitioning_rbsp_idr', data: new Uint8Array([0x65, 0x88, 0x80]), pts: 0, dts: 0 }, // IDR, first_mb=0
+      { nalUnitTypeCode: 1, data: new Uint8Array([0x41, 0x9A, 0x00]), pts: 3000, dts: 3000 }, // non-IDR, first_mb=0
+      { nalUnitTypeCode: 1, data: new Uint8Array([0x41, 0x9A, 0x00]), pts: 6000, dts: 6000 }  // non-IDR, first_mb=0
+    ];
+
+    nalsWithoutAud.forEach(nal => vStream.push(nal));
+    vStream.flush();
+
+    assert.ok(output);
+    assert.ok(output.track.samples);
+    // Previously, without AUD, all NALs were discarded or merged into 1 corrupt frame
+    // Now, samples.length MUST be 3!
+    assert.equal(output.track.samples.length, 3);
+    assert.equal(output.track.samples[0].duration, 3000);
+    assert.equal(output.track.samples[1].duration, 3000);
+    assert.equal(output.track.samples[2].duration, 3000);
+  });
 });
+
 
 
