@@ -362,16 +362,19 @@
     if (request.action === 'FETCH_RESOURCE') {
       const fetchUrl = request.url;
       const responseType = request.responseType || 'text';
+      const customHeaders = request.headers || {};
 
       (async () => {
         try {
           let res;
+          const fetchHeaders = { 'Accept': '*/*', ...customHeaders };
+
           // 1. First attempt: fetch with session credentials (cookies) in page context
           try {
             res = await fetch(fetchUrl, {
               method: 'GET',
               credentials: 'include',
-              headers: { 'Accept': '*/*' }
+              headers: fetchHeaders
             });
           } catch (e1) {
             // Credentials may fail if CORS policy disallows credentials with wildcard
@@ -384,7 +387,7 @@
               const res2 = await fetch(fetchUrl, {
                 method: 'GET',
                 credentials: 'same-origin',
-                headers: { 'Accept': '*/*' }
+                headers: fetchHeaders
               });
               if (res2.ok || !res) res = res2;
             } catch (e2) {}
@@ -395,7 +398,7 @@
             try {
               const res3 = await fetch(fetchUrl, {
                 method: 'GET',
-                headers: { 'Accept': '*/*' }
+                headers: fetchHeaders
               });
               if (res3.ok || !res) res = res3;
             } catch (e3) {}

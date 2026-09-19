@@ -1405,7 +1405,11 @@ function openSubtitlesModal() {
           <button class="primary-btn btn-dl-sub">Download</button>
         `;
         el.querySelector('.btn-dl-sub').addEventListener('click', () => {
-          chrome.downloads.download({ url: tr.src, filename: `${tr.label || 'subtitles'}.vtt` });
+          const ext = tr.src.toLowerCase().includes('.srt') ? 'srt' : 'vtt';
+          const cleanLabel = (typeof MediaDetector !== 'undefined' && MediaDetector.sanitizeTitle) 
+            ? MediaDetector.sanitizeTitle(tr.label || 'subtitles')
+            : (tr.label || 'subtitles').replace(/[\\/*?"<>|:]/g, '_');
+          chrome.downloads.download({ url: tr.src, filename: `${cleanLabel}.${ext}` });
           showToast('Downloading subtitles track...');
         });
         container.appendChild(el);
@@ -1692,7 +1696,9 @@ function showToast(message) {
   const container = document.getElementById('toastContainer');
   const toast = document.createElement('div');
   toast.className = 'toast';
-  toast.innerHTML = `<span>${message}</span>`;
+  const span = document.createElement('span');
+  span.textContent = message;
+  toast.appendChild(span);
   container.appendChild(toast);
 
   setTimeout(() => {

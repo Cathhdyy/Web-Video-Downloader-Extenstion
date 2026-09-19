@@ -35,7 +35,32 @@ function ensureKeepAlive() {
 }
 
 let creatingOffscreenPromise = null;
+let offscreenIdleTimer = null;
+const OFFSCREEN_IDLE_TIMEOUT_MS = 60000; // 60s idle timeout to reclaim RAM
+
+function resetOffscreenIdleTimer() {
+  if (offscreenIdleTimer) {
+    clearTimeout(offscreenIdleTimer);
+    offscreenIdleTimer = null;
+  }
+  if (activeJobs.size === 0) {
+    offscreenIdleTimer = setTimeout(async () => {
+      if (activeJobs.size === 0 && (await hasOffscreenDocument())) {
+        try {
+          await chrome.offscreen.closeDocument();
+          console.log('[Offscreen] Closed idle offscreen document to save RAM.');
+        } catch (e) {}
+      }
+    }, OFFSCREEN_IDLE_TIMEOUT_MS);
+  }
+}
+
 async function setupOffscreenDocument(path = 'offscreen/offscreen.html') {
+  if (offscreenIdleTimer) {
+    clearTimeout(offscreenIdleTimer);
+    offscreenIdleTimer = null;
+  }
+
   if (await hasOffscreenDocument(path)) return;
 
   if (creatingOffscreenPromise) {
@@ -84,6 +109,24 @@ chrome.runtime.onInstalled.addListener(async () => {
     await chrome.storage.local.set({ settings: DEFAULT_SETTINGS });
   }
   console.log('[Media Sniffer] Initialized with real-time Referer capture.');
+});
+
+chrome.runtime.onStartup.addListener(async () => {
+  try {
+    const allData = await chrome.storage.local.get(null);
+    const tabMediaKeys = Object.keys(allData).filter(k => k.startsWith('tab_media_'));
+    if (tabMediaKeys.length > 0) {
+      const activeTabs = await chrome.tabs.query({});
+      const activeTabIds = new Set(activeTabs.map(t => t.id));
+      const staleKeys = tabMediaKeys.filter(k => {
+        const id = parseInt(k.replace('tab_media_', ''), 10);
+        return !activeTabIds.has(id);
+      });
+      if (staleKeys.length > 0) {
+        await chrome.storage.local.remove(staleKeys);
+      }
+    }
+  } catch (err) {}
 });
 
 /**
@@ -461,7 +504,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     case 'BACKGROUND_FETCH': {
-      const { url, responseType, pageUrl, referer, origin } = request;
+      const { url, responseType, pageUrl, referer, origin, headers } = request;
 
       (async () => {
         try {
@@ -483,19 +526,22 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             await setStreamRefererRule(url, effectiveReferer, effectiveOrigin);
           }
 
+          const fetchHeaders = {
+            'Accept': '*/*',
+            ...(headers || {})
+          };
+
           // Direct fetch in service worker (exempt from CORS via <all_urls> host permissions)
           let res;
           try {
             res = await fetch(url, {
-              headers: {
-                'Accept': '*/*'
-              }
+              headers: fetchHeaders
             });
           } catch (fetchErr) {
             // Retry once with referer setup if effectiveReferer is available
             if (effectiveReferer && effectiveReferer.startsWith('http')) {
               await setStreamRefererRule(url, effectiveReferer, effectiveOrigin);
-              res = await fetch(url, { headers: { 'Accept': '*/*' } });
+              res = await fetch(url, { headers: fetchHeaders });
             } else {
               throw fetchErr;
             }
@@ -505,7 +551,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             // If 403 Forbidden, retry with referer rule
             if (res.status === 403 && effectiveReferer && effectiveReferer.startsWith('http')) {
               await setStreamRefererRule(url, effectiveReferer, effectiveOrigin);
-              res = await fetch(url, { headers: { 'Accept': '*/*' } });
+              res = await fetch(url, { headers: fetchHeaders });
             }
             if (!res.ok) {
               throw new Error(`HTTP ${res.status}: ${res.statusText || 'Fetch failed'}`);
@@ -529,7 +575,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     }
 
     case 'PROXY_TAB_FETCH': {
-      const { url, responseType, tabId: requestedTabId, pageUrl } = request;
+      const { url, responseType, tabId: requestedTabId, pageUrl, headers } = request;
 
       (async () => {
         try {
@@ -561,7 +607,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             {
               action: 'FETCH_RESOURCE',
               url,
-              responseType: responseType || 'text'
+              responseType: responseType || 'text',
+              headers: headers || {}
             },
             (response) => {
               if (chrome.runtime.lastError) {
@@ -890,6 +937,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }).catch(() => {});
         activeJobs.delete(jobId);
         ensureKeepAlive();
+        resetOffscreenIdleTimer();
         sendResponse({ success: true });
       } else {
         sendResponse({ success: false, error: 'Job not found' });
@@ -932,6 +980,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         setTimeout(() => {
           activeJobs.delete(jobId);
           ensureKeepAlive();
+          resetOffscreenIdleTimer();
         }, 5000);
       }
       sendResponse({ success: true });
@@ -948,6 +997,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         setTimeout(() => {
           activeJobs.delete(jobId);
           ensureKeepAlive();
+          resetOffscreenIdleTimer();
         }, 8000);
       }
       sendResponse({ success: true });
@@ -959,6 +1009,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
       if (jobId && activeJobs.has(jobId)) {
         activeJobs.delete(jobId);
         ensureKeepAlive();
+        resetOffscreenIdleTimer();
       }
       sendResponse({ success: true });
       break;

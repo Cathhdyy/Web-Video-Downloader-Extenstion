@@ -98,4 +98,58 @@ chunk_002.ts
     const resolved = downloader.resolveUrl(baseUrl, relativeChunk);
     assert.equal(resolved, 'https://cdn.stream.tv/live/channel1/seg_45.ts?token=xyz123&exp=99999999');
   });
+
+  test('parses EXT-X-BYTERANGE with explicit and implicit offsets', () => {
+    const byteRangePlaylist = `
+#EXTM3U
+#EXT-X-VERSION:4
+#EXT-X-TARGETDURATION:10
+#EXTINF:10.0,
+#EXT-X-BYTERANGE:500000@0
+video.mp4
+#EXTINF:10.0,
+#EXT-X-BYTERANGE:450000
+video.mp4
+#EXTINF:10.0,
+#EXT-X-BYTERANGE:600000@1200000
+video.mp4
+#EXT-X-ENDLIST
+    `;
+
+    const parsed = downloader.parseM3U8(byteRangePlaylist, 'https://cdn.example.com/hls/playlist.m3u8');
+    assert.equal(parsed.isMaster, false);
+    assert.equal(parsed.segments.length, 3);
+
+    // Segment 1: explicit offset 0, length 500000
+    assert.deepEqual(parsed.segments[0].byteRange, { offset: 0, length: 500000 });
+
+    // Segment 2: implicit offset (0 + 500000 = 500000), length 450000
+    assert.deepEqual(parsed.segments[1].byteRange, { offset: 500000, length: 450000 });
+
+    // Segment 3: explicit offset 1200000, length 600000
+    assert.deepEqual(parsed.segments[2].byteRange, { offset: 1200000, length: 600000 });
+  });
+
+  test('parses EXT-X-MAP with BYTERANGE and detects fMP4 stream', () => {
+    const fmp4Playlist = `
+#EXTM3U
+#EXT-X-VERSION:7
+#EXT-X-MAP:URI="init.mp4",BYTERANGE="1234@0"
+#EXTINF:6.0,
+segment1.m4s
+#EXTINF:6.0,
+segment2.m4s
+#EXT-X-ENDLIST
+    `;
+
+    const parsed = downloader.parseM3U8(fmp4Playlist, 'https://cdn.example.com/cmaf/playlist.m3u8');
+    assert.equal(parsed.isMaster, false);
+    assert.equal(parsed.isFmp4, true);
+    assert.equal(parsed.segments.length, 3);
+
+    const initSeg = parsed.segments[0];
+    assert.equal(initSeg.isInitSegment, true);
+    assert.equal(initSeg.url, 'https://cdn.example.com/cmaf/init.mp4');
+    assert.deepEqual(initSeg.byteRange, { offset: 0, length: 1234 });
+  });
 });
